@@ -1,13 +1,19 @@
 pragma solidity ^0.5.0;
 import "./runtime.sol";
-library pb_Test{
+library pb_TestOther{
   //enum definition
-
+  int64 public constant _Corpus_UNIVERSAL = 0;
+  function Corpus_UNIVERSAL() internal pure returns (int64) { return _Corpus_UNIVERSAL; }
+  int64 public constant _Corpus_WEB = 1;
+  function Corpus_WEB() internal pure returns (int64) { return _Corpus_WEB; }
+  int64 public constant _Corpus_IMAGES = 2;
+  function Corpus_IMAGES() internal pure returns (int64) { return _Corpus_IMAGES; }
   //struct definition
   struct Data {
-    int32 test;
-    int256 test2;
-    int256 test3;
+    bytes bytes_field;
+    string string_field;
+    bool bool_field;
+    int64 enum_field;
     //non serialized field for map
 
   }
@@ -24,7 +30,7 @@ library pb_Test{
   function _decode(uint p, bytes memory bs, uint sz)
       internal pure returns (Data memory, uint) {
     Data memory r;
-    uint[4] memory counters;
+    uint[5] memory counters;
     uint fieldId;
     _pb.WireType wireType;
     uint bytesRead;
@@ -34,11 +40,13 @@ library pb_Test{
       p += bytesRead;
       if (false) {}
       else if(fieldId == 1)
-          p += _read_test(p, bs, r, counters);
+          p += _read_bytes_field(p, bs, r, counters);
       else if(fieldId == 2)
-          p += _read_test2(p, bs, r, counters);
+          p += _read_string_field(p, bs, r, counters);
       else if(fieldId == 3)
-          p += _read_test3(p, bs, r, counters);
+          p += _read_bool_field(p, bs, r, counters);
+      else if(fieldId == 4)
+          p += _read_enum_field(p, bs, r, counters);
       else revert();
     }
     p = offset;
@@ -48,44 +56,56 @@ library pb_Test{
       p += bytesRead;
       if (false) {}
       else if(fieldId == 1)
-          p += _read_test(p, bs, nil(), counters);
+          p += _read_bytes_field(p, bs, nil(), counters);
       else if(fieldId == 2)
-          p += _read_test2(p, bs, nil(), counters);
+          p += _read_string_field(p, bs, nil(), counters);
       else if(fieldId == 3)
-          p += _read_test3(p, bs, nil(), counters);
+          p += _read_bool_field(p, bs, nil(), counters);
+      else if(fieldId == 4)
+          p += _read_enum_field(p, bs, nil(), counters);
       else revert();
     }
     return (r, sz);
   }
 
   // field readers
-  function _read_test(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int32 x, uint sz) = _pb._decode_sint32(p, bs);
+  function _read_bytes_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bytes memory x, uint sz) = _pb._decode_bytes(p, bs);
     if(isNil(r)) {
       counters[1] += 1;
     } else {
-      r.test = x;
+      r.bytes_field = x;
       if(counters[1] > 0) counters[1] -= 1;
     }
     return sz;
   }
-  function _read_test2(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int256 x, uint sz) = _pb._decode_sol_int256(p, bs);
+  function _read_string_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (string memory x, uint sz) = _pb._decode_string(p, bs);
     if(isNil(r)) {
       counters[2] += 1;
     } else {
-      r.test2 = x;
+      r.string_field = x;
       if(counters[2] > 0) counters[2] -= 1;
     }
     return sz;
   }
-  function _read_test3(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int256 x, uint sz) = _pb._decode_sol_int256(p, bs);
+  function _read_bool_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bool x, uint sz) = _pb._decode_bool(p, bs);
     if(isNil(r)) {
       counters[3] += 1;
     } else {
-      r.test3 = x;
+      r.bool_field = x;
       if(counters[3] > 0) counters[3] -= 1;
+    }
+    return sz;
+  }
+  function _read_enum_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (int64 x, uint sz) = _pb._decode_enum(p, bs);
+    if(isNil(r)) {
+      counters[4] += 1;
+    } else {
+      r.enum_field = x;
+      if(counters[4] > 0) counters[4] -= 1;
     }
     return sz;
   }
@@ -105,12 +125,14 @@ library pb_Test{
       internal pure returns (uint) {
     uint offset = p;
 
-    p += _pb._encode_key(1, _pb.WireType.Varint, p, bs);
-    p += _pb._encode_sint32(r.test, p, bs);
+    p += _pb._encode_key(1, _pb.WireType.LengthDelim, p, bs);
+    p += _pb._encode_bytes(r.bytes_field, p, bs);
     p += _pb._encode_key(2, _pb.WireType.LengthDelim, p, bs);
-    p += _pb._encode_sol_int256(r.test2, p, bs);
-    p += _pb._encode_key(3, _pb.WireType.LengthDelim, p, bs);
-    p += _pb._encode_sol_int256(r.test3, p, bs);
+    p += _pb._encode_string(r.string_field, p, bs);
+    p += _pb._encode_key(3, _pb.WireType.Varint, p, bs);
+    p += _pb._encode_bool(r.bool_field, p, bs);
+    p += _pb._encode_key(4, _pb.WireType.Varint, p, bs);
+    p += _pb._encode_enum(r.enum_field, p, bs);
 
     return p - offset;
   }
@@ -128,9 +150,10 @@ library pb_Test{
   function _estimate(Data memory r) internal pure returns (uint) {
     uint e;
 
-    e += 1 + _pb._sz_sint32(r.test);
-    e += 1 + 35;
-    e += 1 + 35;
+    e += 1 + _pb._sz_lendelim(r.bytes_field.length);
+    e += 1 + _pb._sz_lendelim(bytes(r.string_field).length);
+    e += 1 + 1;
+    e += 1 + _pb._sz_enum(r.enum_field);
 
     return e;
   }
@@ -138,9 +161,10 @@ library pb_Test{
 
   //store function
   function store(Data memory input, Data storage output) internal{
-    output.test = input.test;
-    output.test2 = input.test2;
-    output.test3 = input.test3;
+    output.bytes_field = input.bytes_field;
+    output.string_field = input.string_field;
+    output.bool_field = input.bool_field;
+    output.enum_field = input.enum_field;
 
   }
 
@@ -152,4 +176,4 @@ library pb_Test{
   function isNil(Data memory x) internal pure returns (bool r) {
     assembly { r := iszero(x) }
   }
-} //library pb_Test
+} //library pb_TestOther

@@ -1,13 +1,14 @@
 pragma solidity ^0.5.0;
 import "./runtime.sol";
-library pb_Test{
+library pb_TestBytes{
   //enum definition
 
   //struct definition
   struct Data {
-    int32 test;
-    int256 test2;
-    int256 test3;
+    bytes2 bytes2_field;
+    bytes10 bytes10_field;
+    bytes17 bytes17_field;
+    bytes31 bytes31_field;
     //non serialized field for map
 
   }
@@ -24,7 +25,7 @@ library pb_Test{
   function _decode(uint p, bytes memory bs, uint sz)
       internal pure returns (Data memory, uint) {
     Data memory r;
-    uint[4] memory counters;
+    uint[5] memory counters;
     uint fieldId;
     _pb.WireType wireType;
     uint bytesRead;
@@ -34,11 +35,13 @@ library pb_Test{
       p += bytesRead;
       if (false) {}
       else if(fieldId == 1)
-          p += _read_test(p, bs, r, counters);
+          p += _read_bytes2_field(p, bs, r, counters);
       else if(fieldId == 2)
-          p += _read_test2(p, bs, r, counters);
+          p += _read_bytes10_field(p, bs, r, counters);
       else if(fieldId == 3)
-          p += _read_test3(p, bs, r, counters);
+          p += _read_bytes17_field(p, bs, r, counters);
+      else if(fieldId == 4)
+          p += _read_bytes31_field(p, bs, r, counters);
       else revert();
     }
     p = offset;
@@ -48,44 +51,56 @@ library pb_Test{
       p += bytesRead;
       if (false) {}
       else if(fieldId == 1)
-          p += _read_test(p, bs, nil(), counters);
+          p += _read_bytes2_field(p, bs, nil(), counters);
       else if(fieldId == 2)
-          p += _read_test2(p, bs, nil(), counters);
+          p += _read_bytes10_field(p, bs, nil(), counters);
       else if(fieldId == 3)
-          p += _read_test3(p, bs, nil(), counters);
+          p += _read_bytes17_field(p, bs, nil(), counters);
+      else if(fieldId == 4)
+          p += _read_bytes31_field(p, bs, nil(), counters);
       else revert();
     }
     return (r, sz);
   }
 
   // field readers
-  function _read_test(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int32 x, uint sz) = _pb._decode_sint32(p, bs);
+  function _read_bytes2_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bytes2 x, uint sz) = _pb._decode_sol_bytes2(p, bs);
     if(isNil(r)) {
       counters[1] += 1;
     } else {
-      r.test = x;
+      r.bytes2_field = x;
       if(counters[1] > 0) counters[1] -= 1;
     }
     return sz;
   }
-  function _read_test2(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int256 x, uint sz) = _pb._decode_sol_int256(p, bs);
+  function _read_bytes10_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bytes10 x, uint sz) = _pb._decode_sol_bytes10(p, bs);
     if(isNil(r)) {
       counters[2] += 1;
     } else {
-      r.test2 = x;
+      r.bytes10_field = x;
       if(counters[2] > 0) counters[2] -= 1;
     }
     return sz;
   }
-  function _read_test3(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int256 x, uint sz) = _pb._decode_sol_int256(p, bs);
+  function _read_bytes17_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bytes17 x, uint sz) = _pb._decode_sol_bytes17(p, bs);
     if(isNil(r)) {
       counters[3] += 1;
     } else {
-      r.test3 = x;
+      r.bytes17_field = x;
       if(counters[3] > 0) counters[3] -= 1;
+    }
+    return sz;
+  }
+  function _read_bytes31_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bytes31 x, uint sz) = _pb._decode_sol_bytes31(p, bs);
+    if(isNil(r)) {
+      counters[4] += 1;
+    } else {
+      r.bytes31_field = x;
+      if(counters[4] > 0) counters[4] -= 1;
     }
     return sz;
   }
@@ -105,12 +120,14 @@ library pb_Test{
       internal pure returns (uint) {
     uint offset = p;
 
-    p += _pb._encode_key(1, _pb.WireType.Varint, p, bs);
-    p += _pb._encode_sint32(r.test, p, bs);
+    p += _pb._encode_key(1, _pb.WireType.LengthDelim, p, bs);
+    p += _pb._encode_sol_bytes2(r.bytes2_field, p, bs);
     p += _pb._encode_key(2, _pb.WireType.LengthDelim, p, bs);
-    p += _pb._encode_sol_int256(r.test2, p, bs);
+    p += _pb._encode_sol_bytes10(r.bytes10_field, p, bs);
     p += _pb._encode_key(3, _pb.WireType.LengthDelim, p, bs);
-    p += _pb._encode_sol_int256(r.test3, p, bs);
+    p += _pb._encode_sol_bytes17(r.bytes17_field, p, bs);
+    p += _pb._encode_key(4, _pb.WireType.LengthDelim, p, bs);
+    p += _pb._encode_sol_bytes31(r.bytes31_field, p, bs);
 
     return p - offset;
   }
@@ -125,12 +142,13 @@ library pb_Test{
   }
 
   // estimator
-  function _estimate(Data memory r) internal pure returns (uint) {
+  function _estimate(Data memory /* r */) internal pure returns (uint) {
     uint e;
 
-    e += 1 + _pb._sz_sint32(r.test);
-    e += 1 + 35;
-    e += 1 + 35;
+    e += 1 + 5;
+    e += 1 + 13;
+    e += 1 + 20;
+    e += 1 + 34;
 
     return e;
   }
@@ -138,9 +156,10 @@ library pb_Test{
 
   //store function
   function store(Data memory input, Data storage output) internal{
-    output.test = input.test;
-    output.test2 = input.test2;
-    output.test3 = input.test3;
+    output.bytes2_field = input.bytes2_field;
+    output.bytes10_field = input.bytes10_field;
+    output.bytes17_field = input.bytes17_field;
+    output.bytes31_field = input.bytes31_field;
 
   }
 
@@ -152,4 +171,4 @@ library pb_Test{
   function isNil(Data memory x) internal pure returns (bool r) {
     assembly { r := iszero(x) }
   }
-} //library pb_Test
+} //library pb_TestBytes

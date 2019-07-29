@@ -1,13 +1,14 @@
 pragma solidity ^0.5.0;
 import "./runtime.sol";
-library pb_Test{
+library pb_TestRepeated{
   //enum definition
 
   //struct definition
   struct Data {
-    int32 test;
-    int256 test2;
-    int256 test3;
+    string string_field;
+    uint256[] uint256s;
+    int64[] sint64s;
+    bool bool_field;
     //non serialized field for map
 
   }
@@ -24,7 +25,7 @@ library pb_Test{
   function _decode(uint p, bytes memory bs, uint sz)
       internal pure returns (Data memory, uint) {
     Data memory r;
-    uint[4] memory counters;
+    uint[5] memory counters;
     uint fieldId;
     _pb.WireType wireType;
     uint bytesRead;
@@ -34,58 +35,74 @@ library pb_Test{
       p += bytesRead;
       if (false) {}
       else if(fieldId == 1)
-          p += _read_test(p, bs, r, counters);
+          p += _read_string_field(p, bs, r, counters);
       else if(fieldId == 2)
-          p += _read_test2(p, bs, r, counters);
+          p += _read_uint256s(p, bs, nil(), counters);
       else if(fieldId == 3)
-          p += _read_test3(p, bs, r, counters);
+          p += _read_sint64s(p, bs, nil(), counters);
+      else if(fieldId == 4)
+          p += _read_bool_field(p, bs, r, counters);
       else revert();
     }
     p = offset;
+    r.uint256s = new uint256[](counters[2]);
+    r.sint64s = new int64[](counters[3]);
 
     while(p < offset+sz) {
       (fieldId, wireType, bytesRead) = _pb._decode_key(p, bs);
       p += bytesRead;
       if (false) {}
       else if(fieldId == 1)
-          p += _read_test(p, bs, nil(), counters);
+          p += _read_string_field(p, bs, nil(), counters);
       else if(fieldId == 2)
-          p += _read_test2(p, bs, nil(), counters);
+          p += _read_uint256s(p, bs, r, counters);
       else if(fieldId == 3)
-          p += _read_test3(p, bs, nil(), counters);
+          p += _read_sint64s(p, bs, r, counters);
+      else if(fieldId == 4)
+          p += _read_bool_field(p, bs, nil(), counters);
       else revert();
     }
     return (r, sz);
   }
 
   // field readers
-  function _read_test(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int32 x, uint sz) = _pb._decode_sint32(p, bs);
+  function _read_string_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (string memory x, uint sz) = _pb._decode_string(p, bs);
     if(isNil(r)) {
       counters[1] += 1;
     } else {
-      r.test = x;
+      r.string_field = x;
       if(counters[1] > 0) counters[1] -= 1;
     }
     return sz;
   }
-  function _read_test2(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int256 x, uint sz) = _pb._decode_sol_int256(p, bs);
+  function _read_uint256s(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (uint256 x, uint sz) = _pb._decode_sol_uint256(p, bs);
     if(isNil(r)) {
       counters[2] += 1;
     } else {
-      r.test2 = x;
+      r.uint256s[ r.uint256s.length - counters[2] ] = x;
       if(counters[2] > 0) counters[2] -= 1;
     }
     return sz;
   }
-  function _read_test3(uint p, bytes memory bs, Data memory r, uint[4] memory counters) internal pure returns (uint) {
-    (int256 x, uint sz) = _pb._decode_sol_int256(p, bs);
+  function _read_sint64s(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (int64 x, uint sz) = _pb._decode_sint64(p, bs);
     if(isNil(r)) {
       counters[3] += 1;
     } else {
-      r.test3 = x;
+      r.sint64s[ r.sint64s.length - counters[3] ] = x;
       if(counters[3] > 0) counters[3] -= 1;
+    }
+    return sz;
+  }
+  function _read_bool_field(uint p, bytes memory bs, Data memory r, uint[5] memory counters) internal pure returns (uint) {
+    (bool x, uint sz) = _pb._decode_bool(p, bs);
+    if(isNil(r)) {
+      counters[4] += 1;
+    } else {
+      r.bool_field = x;
+      if(counters[4] > 0) counters[4] -= 1;
     }
     return sz;
   }
@@ -104,13 +121,19 @@ library pb_Test{
   function _encode(Data memory r, uint p, bytes memory bs)
       internal pure returns (uint) {
     uint offset = p;
-
-    p += _pb._encode_key(1, _pb.WireType.Varint, p, bs);
-    p += _pb._encode_sint32(r.test, p, bs);
-    p += _pb._encode_key(2, _pb.WireType.LengthDelim, p, bs);
-    p += _pb._encode_sol_int256(r.test2, p, bs);
-    p += _pb._encode_key(3, _pb.WireType.LengthDelim, p, bs);
-    p += _pb._encode_sol_int256(r.test3, p, bs);
+uint i;
+    p += _pb._encode_key(1, _pb.WireType.LengthDelim, p, bs);
+    p += _pb._encode_string(r.string_field, p, bs);
+    for(i=0; i<r.uint256s.length; i++) {
+      p += _pb._encode_key(2, _pb.WireType.LengthDelim, p, bs);
+      p += _pb._encode_sol_uint256(r.uint256s[i], p, bs);
+    }
+    for(i=0; i<r.sint64s.length; i++) {
+      p += _pb._encode_key(3, _pb.WireType.Varint, p, bs);
+      p += _pb._encode_sint64(r.sint64s[i], p, bs);
+    }
+    p += _pb._encode_key(4, _pb.WireType.Varint, p, bs);
+    p += _pb._encode_bool(r.bool_field, p, bs);
 
     return p - offset;
   }
@@ -127,10 +150,11 @@ library pb_Test{
   // estimator
   function _estimate(Data memory r) internal pure returns (uint) {
     uint e;
-
-    e += 1 + _pb._sz_sint32(r.test);
-    e += 1 + 35;
-    e += 1 + 35;
+uint i;
+    e += 1 + _pb._sz_lendelim(bytes(r.string_field).length);
+    for(i=0; i<r.uint256s.length; i++) e+= 1 + 35;
+    for(i=0; i<r.sint64s.length; i++) e+= 1 + _pb._sz_sint64(r.sint64s[i]);
+    e += 1 + 1;
 
     return e;
   }
@@ -138,9 +162,10 @@ library pb_Test{
 
   //store function
   function store(Data memory input, Data storage output) internal{
-    output.test = input.test;
-    output.test2 = input.test2;
-    output.test3 = input.test3;
+    output.string_field = input.string_field;
+    output.uint256s = input.uint256s;
+    output.sint64s = input.sint64s;
+    output.bool_field = input.bool_field;
 
   }
 
@@ -152,4 +177,4 @@ library pb_Test{
   function isNil(Data memory x) internal pure returns (bool r) {
     assembly { r := iszero(x) }
   }
-} //library pb_Test
+} //library pb_TestRepeated
