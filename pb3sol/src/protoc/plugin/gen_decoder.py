@@ -1,158 +1,109 @@
 import gen_util as util
+import gen_decoder_constants as decoder_constants
 
 def gen_main_decoder(msg, parent_struct_name):
-    return (
-        "  function decode(bytes memory bs) {visibility} pure returns ({name} memory) {{\n"
-        "    (Data memory x,) = _decode(32, bs, bs.length);                       \n"
-        "    return x;                                                    \n"
-        "  }}\n"
-        "  function decode({name} storage self, bytes memory bs) {visibility} {{\n"
-        "    (Data memory x,) = _decode(32, bs, bs.length);                    \n"
-        "    store(x, self);                                           \n"
-        "  }}"
-    ).format(
-        visibility = util.gen_visibility(True),
-        name = util.gen_internal_struct_name(msg, parent_struct_name)
-    )
+  return (decoder_constants.MAIN_DECODER).format(
+    visibility = util.gen_visibility(True),
+    name = util.gen_internal_struct_name(msg, parent_struct_name)
+  )
 
-def gen_inner_field_decoder(field, parent_struct_name, first_pass):
-    args = ""
-    repeated = util.field_is_repeated(field)
-    if repeated:
-        if first_pass:
-            args = "p, bs, nil(), counters"
-        else:
-            args = "p, bs, r, counters"
+def gen_inner_field_decoder(field, parent_struct_name, first_pass, index):
+  args = ""
+  repeated = util.field_is_repeated(field)
+  if repeated:
+    if first_pass:
+      args = decoder_constants.INNER_FIELD_DECODER_NIL
     else:
-        if first_pass:
-            args = "p, bs, r, counters"
-        else:
-            args = "p, bs, nil(), counters"
-
-    return (
-        "      else if(fieldId == {id})       \n"
-        "          p += _read_{field}({args});\n"
-    ).format(
-        id = field.number,
-        field = field.name,
-        args = args,
-    )
+      args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+  else:
+    if first_pass:
+      args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+    else:
+      args = decoder_constants.INNER_FIELD_DECODER_NIL
+  return (decoder_constants.INNER_FIELD_DECODER).format(
+    control = ("else " if index > 0 else ""),
+    id = field.number,
+    field = field.name,
+    args = args
+  )
 
 def gen_inner_fields_decoder(msg, parent_struct_name, first_pass):
-    return (
-        "if (false) {{}}\n"
-        "{codes}"
-        "      else revert();"
-    ).format(
-        codes = ''.join(list(map((lambda f: gen_inner_field_decoder(f, parent_struct_name, first_pass)), msg.field))),
-    )
+  transformed = [gen_inner_field_decoder(field, parent_struct_name, first_pass, index) for index, field in enumerate(msg.field)]
+  return (''.join(transformed))
 
-def gen_inner_array_allocator(f, parent_struct_name):
-    return (
-        "    r.{field} = new {t}(counters[{i}]);\n"
-    ).format(
-        t = util.gen_global_type_from_field(f),
-        field = f.name,
-        i = f.number,
-    )
 
-def gen_inner_arraty_allocators(msg, parent_struct_name):
-    return ''.join(list(map(
-        (lambda f: gen_inner_array_allocator(f, parent_struct_name) if util.field_is_repeated(f) else ""), msg.field)))
+def gen_inner_array_allocator(f, parent_struct_name, is_repeated):
+  if not is_repeated:
+    return ""
+  return (decoder_constants.INNER_ARRAY_ALLOCATOR).format(
+    t = util.gen_global_type_from_field(f),
+    field = f.name,
+    i = f.number
+  )
+
+def gen_inner_map_size(f, nested_type):
+  if not util.is_map_type(f, nested_type):
+    return ""
+  return (decoder_constants.INNER_MAP_SIZE).format(
+    field = f.name,
+    i = f.number
+  )
+
+def gen_inner_array_allocators(msg, parent_struct_name):
+  return ''.join(map(lambda f: gen_inner_array_allocator(f, parent_struct_name, util.field_is_repeated(f)), msg.field))
+
+def gen_inner_maps_size(msg, parent_struct_name):
+  return ''.join(map(lambda f: gen_inner_map_size(f, msg.nested_type), msg.field))
 
 def gen_inner_decoder(msg, parent_struct_name):
-    return (
-        "  function _decode(uint p, bytes memory bs, uint sz)                   \n"
-        "      internal pure returns ({struct} memory, uint) {{             \n"
-        "    {struct} memory r;                                          \n"
-        "    uint[{n}] memory counters;                                  \n"
-        "    uint fieldId;                                               \n"
-        "    _pb.WireType wireType;                                      \n"
-        "    uint bytesRead;                                             \n"
-        "    uint offset = p;                                            \n"
-        "    while(p < offset+sz) {{                                     \n"
-        "      (fieldId, wireType, bytesRead) = _pb._decode_key(p, bs);  \n"
-        "      p += bytesRead;                                           \n"
-        "      {first_pass}                                              \n"
-        "    }}                                                          \n"
-        "    p = offset;                                                 \n"
-        "{allocators}                                                    \n"
-        "    while(p < offset+sz) {{                                     \n"
-        "      (fieldId, wireType, bytesRead) = _pb._decode_key(p, bs);  \n"
-        "      p += bytesRead;                                           \n"
-        "      {second_pass}                                             \n"
-        "    }}                                                          \n"
-        "    return (r, sz);                                             \n"
-        "  }}                                                            \n"
-    ).format(
-        struct=util.gen_internal_struct_name(msg, parent_struct_name),
-        n=util.max_field_number(msg) + 1,
-        first_pass=gen_inner_fields_decoder(msg, parent_struct_name, True),
-        allocators=gen_inner_arraty_allocators(msg, parent_struct_name),
-        second_pass=gen_inner_fields_decoder(msg, parent_struct_name, False),
+  allocators = gen_inner_array_allocators(msg, parent_struct_name) + "\n" + gen_inner_maps_size(msg, parent_struct_name)
+  if allocators.strip():
+    second_pass = decoder_constants.INNER_DECODER_SECOND_PASS.format(
+      allocators = allocators,
+      second_pass = gen_inner_fields_decoder(msg, parent_struct_name, False)
     )
+  else:
+    second_pass = ""
+  return (decoder_constants.INNER_DECODER).format(
+    struct = util.gen_internal_struct_name(msg, parent_struct_name),
+    n = util.max_field_number(msg) + 1,
+    first_pass = gen_inner_fields_decoder(msg, parent_struct_name, True),
+    second_pass = second_pass
+  )
 
 def gen_field_reader(f, parent_struct_name, msg):
-    suffix = ("[ r.{field}.length - counters[{i}] ]").format(field = f.name, i = f.number) if util.field_is_repeated(f) else ""
-    return (
-        "  function _read_{field}(uint p, bytes memory bs, {t} memory r, uint[{n}] memory counters) internal pure returns (uint) {{                            \n"
-        "    ({decode_type} x, uint sz) = {decoder}(p, bs);                   \n"
-        "    if(isNil(r)) {{                                                  \n"
-        "      counters[{i}] += 1;                                            \n"
-        "    }} else {{                                                       \n"
-        "      r.{field}{suffix} = x;                                         \n"
-        "      if(counters[{i}] > 0) counters[{i}] -= 1;                      \n"
-        "    }}                                                               \n"
-        "    return sz;                                                       \n"
-        "  }}                                                                 \n"
-    ).format(
-        field = f.name,
-        decoder = util.gen_decoder_name(f),
-        decode_type = util.gen_global_type_decl_from_field(f),
-        t = util.gen_internal_struct_name(msg, parent_struct_name),
-        i = f.number,
-        n = util.max_field_number(msg) + 1,
-        suffix = suffix,
-    )
+  suffix = ("[ r.{field}.length - counters[{i}] ]").format(field = f.name, i = f.number) if util.field_is_repeated(f) else ""
+  return (decoder_constants.FIELD_READER).format(
+    field = f.name,
+    decoder = util.gen_decoder_name(f),
+    decode_type = util.gen_global_type_decl_from_field(f),
+    t = util.gen_internal_struct_name(msg, parent_struct_name),
+    i = f.number,
+    n = util.max_field_number(msg) + 1,
+    suffix = suffix
+  )
 
 
 def gen_field_readers(msg, parent_struct_name):
-    return ''.join(list(map(lambda f: gen_field_reader(f, parent_struct_name, msg), msg.field)))
+  return ''.join(list(map(lambda f: gen_field_reader(f, parent_struct_name, msg), msg.field)))
 
 def gen_struct_decoder(f, msg, parent_struct_name):
-    return (
-        "  function {name}(uint p, bytes memory bs)            \n"
-        "      internal pure returns ({struct} memory, uint) {{    \n"
-        "    (uint sz, uint bytesRead) = _pb._decode_varint(p, bs);   \n"
-        "    p += bytesRead;                                    \n"
-        "    ({decode_type} r,) = {lib}._decode(p, bs, sz);               \n"
-        "    return (r, sz + bytesRead);                        \n"
-        "  }}      \n"
-    ).format(
-        struct = util.gen_global_type_name_from_field(f),
-        decode_type = util.gen_global_type_decl_from_field(f),
-        name = util.gen_struct_decoder_name_from_field(f),
-        lib = util.gen_struct_codec_lib_name_from_field(f)
-    )
+  return (decoder_constants.STRUCT_DECORDER).format(
+    struct = util.gen_global_type_name_from_field(f),
+    decode_type = util.gen_global_type_decl_from_field(f),
+    name = util.gen_struct_decoder_name_from_field(f),
+    lib = util.gen_struct_codec_lib_name_from_field(f)
+  )
 
 def gen_struct_decoders(msg, parent_struct_name):
-    return ''.join(list(map(
-        (lambda f: gen_struct_decoder(f, msg, parent_struct_name) if util.field_is_message(f) else ""), msg.field)))
+  return ''.join(list(map(
+    (lambda f: gen_struct_decoder(f, msg, parent_struct_name) if util.field_is_message(f) else ""), msg.field)))
 
 
 def gen_decoder_section(msg, parent_struct_name):
-    return (
-        "  // Decoder section                       \n"
-        "{main_decoder}                             \n"
-        "  // innter decoder                       \n"
-        "{inner_decoder}                            \n"
-        "  // field readers                       \n"
-        "{field_readers}                            \n"
-        "  // struct decoder                       \n"
-        "{struct_decoders}                          "
-    ).format(
-        main_decoder = gen_main_decoder(msg, parent_struct_name),
-        inner_decoder = gen_inner_decoder(msg, parent_struct_name),
-        field_readers = gen_field_readers(msg, parent_struct_name),
-        struct_decoders = gen_struct_decoders(msg, parent_struct_name),
-    )
+  return (decoder_constants.DECODER_SECTION).format(
+    main_decoder = gen_main_decoder(msg, parent_struct_name),
+    inner_decoder = gen_inner_decoder(msg, parent_struct_name),
+    field_readers = gen_field_readers(msg, parent_struct_name),
+    struct_decoders = gen_struct_decoders(msg, parent_struct_name)
+  )

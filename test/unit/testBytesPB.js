@@ -30,11 +30,5 @@ contract('TestBytesPB', (accounts) => {
     assert.equal(bytes10_field_expected, bytes10_field);
     assert.equal(bytes17_field_expected, bytes17_field);
     assert.equal(bytes31_field_expected, bytes31_field);
-
-    let size = await contractInstance.sizeTestBytes(accounts[0], bytes2_number,
-      bytes10_number, bytes17_number,
-      bytes31_number);
-    console.log(size);
-
   })
 });

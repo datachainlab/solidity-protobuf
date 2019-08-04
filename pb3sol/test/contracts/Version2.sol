@@ -1,7 +1,7 @@
 pragma solidity ^0.4.17;
 
 import "./libs/StorageAccessor.sol";
-import "./libs/pb/TaskList2_pb.sol";
+import "./libs/pb/TaskList2ProtoBufParser.sol";
 import "./libs/StrUtil.sol";
 
 contract Version2 is StorageAccessor {

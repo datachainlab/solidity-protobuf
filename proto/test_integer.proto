@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "Solidity.proto";
+message TestInteger {
+  sint32 sint32_field = 1;
+  int32 int32_field = 2;
+  fixed32 fixed32_field = 3;
+  fixed64 fixed64_field = 4;
+  .solidity.int256 int256_field = 5;
+  .solidity.uint256 uint256_field = 6;
+  .solidity.address address_field = 7;
+  .solidity.int64 int64_field = 8;
+  .solidity.uint64 uint64_field = 9;
+}

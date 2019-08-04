@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-library _pb {
+library ProtoBufParser {
 
   enum WireType { Varint, Fixed64, LengthDelim, StartGroup, EndGroup, Fixed32 }
   uint constant WORD_LENGTH = 32;
@@ -10,56 +10,56 @@ library _pb {
 
   //Storages
 
-  function encode_storage(bytes storage location, bytes memory encoded) internal {
+  function encodeStorage(bytes storage location, bytes memory encoded) internal {
     uint length = encoded.length;
-    uint first_word;
-    uint word_length = WORD_LENGTH;
-    uint remaining_length = REMAINING_LENGTH;
+    uint firstWord;
+    uint wordLength = WORD_LENGTH;
+    uint remainingLength = REMAINING_LENGTH;
 
     assembly {
-      first_word := mload(add(encoded, word_length))
+      firstWord := mload(add(encoded, wordLength))
     }
-    first_word = first_word >> (BYTE_SIZE * HEADER_SIZE_LENGTH_IN_BYTES) | (length << BYTE_SIZE * REMAINING_LENGTH);
+    firstWord = firstWord >> (BYTE_SIZE * HEADER_SIZE_LENGTH_IN_BYTES) | (length << BYTE_SIZE * REMAINING_LENGTH);
 
     assembly {
-      sstore(location_slot, first_word)
+      sstore(location_slot, firstWord)
     }
 
     if (length > REMAINING_LENGTH) {
       length -= REMAINING_LENGTH;
       for (uint i = 0; i < ceil(length, WORD_LENGTH); i++) {
         assembly {
-          let offset := add(mul(i, word_length), remaining_length)
-          let slot_index := add(i, 1)
-          sstore(add(location_slot, slot_index), mload(add(add(encoded, word_length), offset)))
+          let offset := add(mul(i, wordLength), remainingLength)
+          let slotIndex := add(i, 1)
+          sstore(add(location_slot, slotIndex), mload(add(add(encoded, wordLength), offset)))
         }
       }
     }
   }
 
-  function decode_storage(bytes storage location) internal view returns (bytes memory) {
-    uint first_word;
-    uint remaining_length = REMAINING_LENGTH;
-    uint word_length = WORD_LENGTH;
+  function decodeStorage(bytes storage location) internal view returns (bytes memory) {
+    uint firstWord;
+    uint remainingLength = REMAINING_LENGTH;
+    uint wordLength = WORD_LENGTH;
 
     assembly {
-      first_word := sload(location_slot)
+      firstWord := sload(location_slot)
     }
 
-    uint length = first_word >> (BYTE_SIZE * REMAINING_LENGTH);
+    uint length = firstWord >> (BYTE_SIZE * REMAINING_LENGTH);
     bytes memory encoded = new bytes(length);
 
     assembly {
-      mstore(add(encoded, remaining_length), first_word)
+      mstore(add(encoded, remainingLength), firstWord)
     }
 
     if (length > REMAINING_LENGTH) {
       length -= REMAINING_LENGTH;
       for (uint i = 0; i < ceil(length, WORD_LENGTH); i++) {
         assembly {
-          let offset := add(mul(i, word_length), remaining_length)
-          let slot_index := add(i, 1)
-          mstore(add(add(encoded, word_length), offset), sload(add(location_slot, slot_index)))
+          let offset := add(mul(i, wordLength), remainingLength)
+          let slotIndex := add(i, 1)
+          mstore(add(add(encoded, wordLength), offset), sload(add(location_slot, slotIndex)))
         }
       }
     }
@@ -211,15 +211,15 @@ library _pb {
     assembly {
       let bptr  := add(b, 32)
       let count := 0
-      p         := add(add(bs, p),sz)
+      p := add(add(bs, p),sz)
       for {} lt(count, len) {} {
         mstore8(bptr, byte(0, mload(p)))
-        p     := add(p, 1)
-        bptr  := add(bptr, 1)
+        p := add(p, 1)
+        bptr := add(bptr, 1)
         count := add(count, 1)
       }
     }
-    return (b, sz+len);
+    return (b, sz + len);
   }
 
   // Encoders
@@ -269,7 +269,7 @@ library _pb {
         count := add(count, 1)
       }
     }
-    return sz+count;
+    return sz + count;
   }
 
   function _encode_uint32(uint32 x, uint p, bytes memory bs) internal pure returns (uint) {
@@ -1413,14 +1413,14 @@ library _pb {
 
   function _get_real_size(uint x, uint sz) internal pure returns (uint) {
     uint base = 0xff;
-    uint real_size = sz;
-    while (x & (base << (real_size * BYTE_SIZE - BYTE_SIZE)) == 0 && real_size > 0) {
-      real_size -= 1;
+    uint realSize = sz;
+    while (x & (base << (realSize * BYTE_SIZE - BYTE_SIZE)) == 0 && realSize > 0) {
+      realSize -= 1;
     }
-    if (real_size == 0) {
-      real_size = 1;
+    if (realSize == 0) {
+      realSize = 1;
     }
-    return real_size;
+    return realSize;
   }
 
   function _get_real_size(int x, uint sz) internal pure returns (uint) {
@@ -1434,42 +1434,42 @@ library _pb {
       return tmp;
     }
 
-    uint real_size = sz;
-    while (x & (base << (real_size * BYTE_SIZE - BYTE_SIZE)) == (base << (real_size * BYTE_SIZE - BYTE_SIZE))) {
-      real_size -= 1;
+    uint realSize = sz;
+    while (x & (base << (realSize * BYTE_SIZE - BYTE_SIZE)) == (base << (realSize * BYTE_SIZE - BYTE_SIZE)) && realSize > 0) {
+      realSize -= 1;
     }
-    int remainder = (x & (base << (real_size * BYTE_SIZE - BYTE_SIZE))) >> (real_size * BYTE_SIZE - BYTE_SIZE);
+    int remainder = (x & (base << (realSize * BYTE_SIZE - BYTE_SIZE))) >> (realSize * BYTE_SIZE - BYTE_SIZE);
     if (remainder < 128) {
-      real_size += 1;
+      realSize += 1;
     }
-    return real_size;
+    return realSize;
   }
 
   function _encode_sol_raw_other(int x, uint p, bytes memory bs, uint sz) internal pure returns (uint) {
-    uint real_size = _get_real_size(x, sz);
+    uint realSize = _get_real_size(x, sz);
     assembly {
       let bsptr := add(bs, p)
-      let count := real_size
+      let count := realSize
       for {} gt(count, 0) {} {
         mstore8(bsptr, byte(sub(32, count), x))
         bsptr := add(bsptr, 1)
         count := sub(count, 1)
       }
     }
-    return real_size;
+    return realSize;
   }
 
   function _encode_sol_raw_other(uint x, uint p, bytes memory bs, uint sz) internal pure returns (uint) {
-    uint real_size = _get_real_size(x, sz);
+    uint realSize = _get_real_size(x, sz);
     assembly {
       let bsptr := add(bs, p)
-      let count := real_size
+      let count := realSize
       for {} gt(count, 0) {} {
         mstore8(bsptr, byte(sub(32, count), x))
         bsptr := add(bsptr, 1)
         count := sub(count, 1)
       }
     }
-    return real_size;
+    return realSize;
   }
 }

@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+import "Solidity.proto";
+message TestRepeated {
+  string string_field = 1;
+  repeated .solidity.uint256 uint256s = 2;
+  repeated .solidity.int64 sint64s = 3;
+  bool bool_field = 4;
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+import "Solidity.proto";
+message TestOther {
+  bytes bytes_field = 1;
+  string string_field = 2;
+  bool bool_field = 3;
+  enum Corpus {
+    UNIVERSAL = 0;
+    WEB = 1;
+    IMAGES = 2;
+    LOCAL = 3;
+    NEWS = 4;
+    PRODUCTS = 5;
+    VIDEO = 6;
+  }
+  Corpus enum_field = 4;
+}
