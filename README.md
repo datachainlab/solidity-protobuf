@@ -62,3 +62,8 @@ message SellerParameter {
 ```
 
 ProtoSolGen generates a Solidity struct definition for this message as well as serialization/deserialization methods. Users can use the generated Solidity stub in their smart contracts.
+
+### Usage
+1. Install [protobuf compiler](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation)
+2. Install python requirements using `pip install -r requirements.txt`
+3. Use `run.sh` with input proto files (`--input`) and output Solidity location(`--output`)
