@@ -1,8 +1,8 @@
-<h1 align="center">ProtoSolGen</h1>
+<h1 align="center">ProtoSolGenerator</h1>
 
-ProtoSolGen is a protocol buffer client generator for Solidity. Its main purpose is to allow Ethereum developers to define custom data structure using protocol buffer, and generates Solidity stubs for data serialization and deserialization.
+ProtoSolGenerator is a protocol buffer client generator for Solidity. Its main purpose is to allow Ethereum developers to define custom data structure using protocol buffer, and generates Solidity stubs for data serialization and deserialization.
 
-ProtoSolGen is inspired by [pb3sol](https://raw.githubusercontent.com/umegaya/pb3sol) with optimization on performance, flexibility and usability.
+ProtoSolGenerator is inspired by [pb3sol](https://raw.githubusercontent.com/umegaya/pb3sol) with optimization on performance, flexibility and usability. We initial testing shows that the gas cost is reduced by 2/3 compared to the original Solidity implementation.
 
 <h2 align="center">Introduction</h2>
 
@@ -44,7 +44,7 @@ The data, which is of type bytes, contains the minimum number of bytes needed to
 
 ### Installation
 
-To install ProtoSolGen, first install [protobuf compiler](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation).
+To install ProtoSolGenerator, first install [protobuf compiler](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation).
 
 Then install python requirements.
 
@@ -75,7 +75,7 @@ message SellerParameter {
 }
 ```
 
-ProtoSolGen generates a Solidity struct definition for this message as well as serialization/deserialization methods. Users can use the generated Solidity stub in their smart contracts.
+ProtoSolGenerator generates a Solidity struct definition for this message as well as serialization/deserialization methods. Users can use the generated Solidity stub in their smart contracts.
 
 ### Client Generation
 
