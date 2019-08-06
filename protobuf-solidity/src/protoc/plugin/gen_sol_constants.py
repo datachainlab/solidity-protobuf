@@ -1,15 +1,14 @@
 STRUCT_DEFINITION = """
   //struct definition
   struct Data {{
-{fields}
-    //non serialized field for map
-{map_fields}
+{fields}{map_fields}
   }}"""
 
 ENUMS_DEFINITION = """
   //enum definition{enums}"""
 
-MAP_FIELD_DEFINITION = "    uint _size_{name};"
+MAP_FIELD_DEFINITION = """
+    uint _size_{name};"""
 
 UTILITY_FUNCTION = """
   //utility functions

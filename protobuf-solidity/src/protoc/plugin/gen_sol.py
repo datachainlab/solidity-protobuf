@@ -45,9 +45,14 @@ def gen_map_fields(msg, parent_struct_name):
 
 # below gen_* codes for generating external library
 def gen_struct_definition(msg, parent_struct_name):
+  map_fields = gen_map_fields(msg, parent_struct_name)
+  if map_fields.strip():
+    map_fields = "\n    //non serialized fields" + map_fields
+  else:
+    map_fields = ""
   return (sol_constants.STRUCT_DEFINITION).format(
     fields = gen_fields(msg),
-    map_fields = gen_map_fields(msg, parent_struct_name)
+    map_fields = map_fields
   )
 
 def gen_enums(msg):
