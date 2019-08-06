@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+import "SolidityTypes.proto";
+message TestRepeatedAdd {
+  repeated .solidity.uint256 uint256s = 1;
+}

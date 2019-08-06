@@ -145,23 +145,36 @@ def gen_map_helper_codes_for_field(f, nested_type):
     container_type = util.gen_global_type_name_from_field(f)
   )
 
-def gen_map_helper(nested_type, parent_msg, parent_struct_name):
+def gen_array_helper_codes_for_field(f):
+  field_type = util.gen_global_type_name_from_field(f)
+  return (sol_constants.ARRAY_HELPER_CODE).format(
+    name = f.name,
+    val_name = "self.{0}".format(f.name),
+    field_type = field_type,
+    field_storage_type = "memory" if util.is_complex_type(field_type) else ""
+  )
+
+def gen_map_helper(nested_type, parent_msg, parent_struct_name, all_map_fields):
   if nested_type.options and nested_type.options.map_entry:
     pb_nested_struct_name = gen_nested_struct_name(nested_type, parent_msg, parent_struct_name)
     map_fields = list(filter(
       lambda f: util.gen_struct_name_from_field(f) == pb_nested_struct_name,
       parent_msg.field))
+    all_map_fields.extend(map_fields)  
     return ''.join(list(map(lambda f: gen_map_helper_codes_for_field(f, nested_type), map_fields)))
   else:
     return ''
 
-def gen_map_helpers(msg, parent_struct_name):
-  return ''.join(list(map((lambda nt: gen_map_helper(nt, msg, parent_struct_name)), msg.nested_type)))
+def gen_map_helpers(msg, parent_struct_name, all_map_fields):
+  return ''.join(list(map((lambda nt: gen_map_helper(nt, msg, parent_struct_name, all_map_fields)), msg.nested_type)))
 
+def gen_array_helpers(msg, parent_struct_name, all_map_fields):
+  array_fields = filter(lambda t: util.field_is_repeated(t) and t not in all_map_fields, msg.field)
+  return ''.join(map(lambda f: gen_array_helper_codes_for_field(f),array_fields))
 
 def gen_codec(msg, main_codecs, delegate_codecs, parent_struct_name = None):
   delegate_lib_name = util.gen_delegate_lib_name(msg, parent_struct_name)
-
+  all_map_fields = []
   # delegate codec
   delegate_codecs.append(sol_constants.CODECS.format(
     delegate_lib_name = delegate_lib_name,
@@ -170,10 +183,10 @@ def gen_codec(msg, main_codecs, delegate_codecs, parent_struct_name = None):
     decoder_section = gen_decoder_section(msg, parent_struct_name),
     encoder_section = gen_encoder_section(msg, parent_struct_name),
     store_function = gen_store_function(msg, parent_struct_name),
-    map_helper = gen_map_helpers(msg, parent_struct_name),
+    map_helper = gen_map_helpers(msg, parent_struct_name, all_map_fields),
+    array_helper = gen_array_helpers(msg, parent_struct_name, all_map_fields),
     utility_functions = gen_utility_functions(msg, parent_struct_name)
   ))
-
   for nested in msg.nested_type:
     gen_codec(nested, main_codecs, delegate_codecs, util.add_prefix(parent_struct_name, msg.name))
 

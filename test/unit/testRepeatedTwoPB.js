@@ -1,11 +1,11 @@
-const TestRepeatedPB = artifacts.require('TestRepeatedPB.sol');
+const TestRepeatedTwoPB = artifacts.require('TestRepeatedTwoPB.sol');
 const assert = require('assert');
 const BN = require('bn.js');
 
 let contractInstance;
-contract('TestRepeatedPB', (accounts) => {
+contract('TestRepeatedTwoPB', (accounts) => {
   beforeEach(async () => {
-    contractInstance = await TestRepeatedPB.new();
+    contractInstance = await TestRepeatedTwoPB.new();
   }),
   it('should return same values', async () => {
     let string_field_expected = "abc";

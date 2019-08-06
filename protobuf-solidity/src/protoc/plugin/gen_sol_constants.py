@@ -105,6 +105,18 @@ MAP_HELPER_CODE = """
     {val_name}[pos] = {val_name}[--{map_name}];
   }}"""
 
+ARRAY_HELPER_CODE = """
+  //array helpers for {name}
+  function add_{name}(Data memory self, {field_type} {field_storage_type} value) internal pure {{
+    {field_type}[] memory tmp = new {field_type}[]({val_name}.length + 1);
+    for (uint i = 0; i < {val_name}.length; i++) {{
+      tmp[i] = {val_name}[i];
+    }}
+    tmp[{val_name}.length] = value;
+    {val_name} = tmp;
+  }}
+"""
+
 CODECS = """
 library {delegate_lib_name} {{
 {enum_definition}
@@ -113,6 +125,7 @@ library {delegate_lib_name} {{
 {encoder_section}
 {store_function}
 {map_helper}
+{array_helper}
 {utility_functions}
 }}
 //library {delegate_lib_name}"""

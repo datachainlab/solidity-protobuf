@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./libs/test_repeated_two.sol";
 
-contract TestRepeatedPB {
+contract TestRepeatedTwoPB {
   mapping(address => bytes) public contracts;
 
   function getTestRepeatedString(address key) public view returns (string memory) {
