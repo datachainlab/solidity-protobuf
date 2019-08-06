@@ -43,7 +43,7 @@ Users can use the custom type definition to define their data structure. Below i
 ```
 syntax = "proto3";
 
-import "Solidity.proto";
+import "SolidityTypes.proto";
 
 package finance.nuts;
 

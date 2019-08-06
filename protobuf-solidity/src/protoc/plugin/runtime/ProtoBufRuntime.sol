@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-library ProtoBufParser {
+library ProtoBufRuntime {
 
   enum WireType { Varint, Fixed64, LengthDelim, StartGroup, EndGroup, Fixed32 }
   uint constant WORD_LENGTH = 32;

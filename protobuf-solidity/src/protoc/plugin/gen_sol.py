@@ -55,9 +55,13 @@ def gen_enums(msg):
 
 # below gen_* codes for generating internal library
 def gen_enum_definition(msg, parent_struct_name):
-  return (sol_constants.ENUMS_DEFINITION).format(
-    enums = gen_enums(msg)
-  )
+  enums = gen_enums(msg)
+  if enums.strip():
+    return (sol_constants.ENUMS_DEFINITION).format(
+      enums = gen_enums(msg)
+    )
+  else:
+    return ""
 
 # below gen_* codes for generating internal library
 def gen_utility_functions(msg, parent_struct_name):
@@ -170,8 +174,8 @@ def gen_codec(msg, main_codecs, delegate_codecs, parent_struct_name = None):
 
 
 
-SOLIDITY_NATIVE_TYPEDEFS = "Solidity.proto"
-RUNTIME_FILE_NAME = "runtime.sol"
+SOLIDITY_NATIVE_TYPEDEFS = "SolidityTypes.proto"
+RUNTIME_FILE_NAME = "ProtoBufRuntime.sol"
 GEN_RUNTIME = False
 COMPILE_META_SCHEMA = False
 def apply_options(params_string):
@@ -226,7 +230,7 @@ def generate_code(request, response):
         continue
       if ("google/protobuf" in dep) and (not COMPILE_META_SCHEMA):
         continue
-      output.append('import "./{0}";'.format(dep.replace('.proto', '_pb.sol')))
+      output.append('import "./{0}";'.format(dep.replace('.proto', '.sol')))
 
     # generate per message codes
     main_codecs = []
@@ -242,14 +246,14 @@ def generate_code(request, response):
       # Fill response
       basepath = os.path.basename(proto_file.name)
       f = response.file.add()
-      f.name = basepath.replace('.proto', '_pb.sol')
+      f.name = basepath.replace('.proto', '.sol')
       f.content = '\n'.join(output)
       # increase generated file count
       generated = generated + 1
 
   if generated > 0 and GEN_RUNTIME:
     try:
-      with open(os.path.dirname(os.path.realpath(__file__)) + '/runtime/runtime.sol', 'r') as runtime:
+      with open(os.path.dirname(os.path.realpath(__file__)) + '/runtime/ProtoBufRuntime.sol', 'r') as runtime:
         rf = response.file.add()
         rf.name = RUNTIME_FILE_NAME
         rf.content = runtime.read()

@@ -53,7 +53,7 @@ def gen_field_scalar_size(f):
     if vt == "bool":
       return "1"
     else:
-      return ("ProtoBufParser._sz_{valtype}(r.{field})").format(
+      return ("ProtoBufRuntime._sz_{valtype}(r.{field})").format(
         valtype = vt,
         field = fname,
       )
@@ -63,17 +63,17 @@ def gen_field_scalar_size(f):
     return "4"
   elif wt == "LengthDelim":
     if vt == "bytes":
-      return ("ProtoBufParser._sz_lendelim(r.{field}.length)").format(
+      return ("ProtoBufRuntime._sz_lendelim(r.{field}.length)").format(
         field = fname
       )
     elif vt == "string":
-      return ("ProtoBufParser._sz_lendelim(bytes(r.{field}).length)").format(
+      return ("ProtoBufRuntime._sz_lendelim(bytes(r.{field}).length)").format(
         field = fname
       )
     elif vt == "message":
       st = util.field_sol_type(f)
       if st is None:
-        return ("ProtoBufParser._sz_lendelim({lib}._estimate(r.{field}))").format(
+        return ("ProtoBufRuntime._sz_lendelim({lib}._estimate(r.{field}))").format(
           lib = util.gen_struct_codec_lib_name_from_field(f),
           field = fname,
         )

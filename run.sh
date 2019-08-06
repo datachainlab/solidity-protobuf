@@ -81,4 +81,4 @@ then
 fi
 
 parentdir="$(dirname "$_arg_input")"
-protoc -I$parentdir -I$(pwd)/pb3sol/src/protoc/include --plugin=protoc-gen-sol=$(pwd)/pb3sol/src/protoc/plugin/gen_sol.py --sol_out=gen_runtime=runtime.sol:$_arg_output $_arg_input
+protoc -I$parentdir -I$(pwd)/protobuf-solidity/src/protoc/include --plugin=protoc-gen-sol=$(pwd)/protobuf-solidity/src/protoc/plugin/gen_sol.py --sol_out=gen_runtime=ProtoBufRuntime.sol:$_arg_output $_arg_input

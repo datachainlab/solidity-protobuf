@@ -7,8 +7,7 @@ STRUCT_DEFINITION = """
   }}"""
 
 ENUMS_DEFINITION = """
-  //enum definition
-  {enums}"""
+  //enum definition{enums}"""
 
 MAP_FIELD_DEFINITION = "    uint _size_{name};"
 

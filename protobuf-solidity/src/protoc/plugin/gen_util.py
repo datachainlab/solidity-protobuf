@@ -181,7 +181,7 @@ INTERNAL_TYPE_CATEGORY_ENUM = 2
 INTERNAL_TYPE_CATEGORY_USERTYPE = 3
 
 TYPE_MESSAGE = 11
-PB_LIB_NAME_PREFIX = "ProtoBuf"
+PB_LIB_NAME_PREFIX = ""
 PB_CURRENT_PACKAGE = ""
 LIBRARY_LINKING_MODE = False
 ENUM_AS_CONSTANT = True
@@ -361,21 +361,21 @@ def gen_struct_codec_lib_name_from_field(field):
 def gen_decoder_name(field):
   val = Num2PbType.get(field.type, None)
   if val != None:
-    return "ProtoBufParser._decode_" + val
+    return "ProtoBufRuntime._decode_" + val
   else:
     val = field_sol_type(field)
     if val != None:
-      return "ProtoBufParser._decode_sol_" + val
+      return "ProtoBufRuntime._decode_sol_" + val
     return "_decode_" + "".join(map(lambda t: t[:1].upper() + t[1:], field.type_name.split(".")))
 
 def gen_encoder_name(field):
   val = Num2PbType.get(field.type, None)
   if val != None:
-    return "ProtoBufParser._encode_" + val
+    return "ProtoBufRuntime._encode_" + val
   else:
     val = field_sol_type(field)
     if val != None:
-      return "ProtoBufParser._encode_sol_" + val
+      return "ProtoBufRuntime._encode_sol_" + val
     return gen_struct_codec_lib_name_from_field(field) + "._encode_nested"
 
 def gen_wire_type(field):

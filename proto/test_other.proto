@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "Solidity.proto";
+import "SolidityTypes.proto";
 message TestOther {
   bytes bytes_field = 1;
   string string_field = 2;

@@ -1,7 +1,7 @@
 import gen_util as util
 
-INNER_FIELD_DECODER_REGULAR = "p, bs, r, counters"
-INNER_FIELD_DECODER_NIL = "p, bs, nil(), counters"
+INNER_FIELD_DECODER_REGULAR = "pointer, bs, r, counters"
+INNER_FIELD_DECODER_NIL = "pointer, bs, nil(), counters"
 
 MAIN_DECODER = """
   function decode(bytes memory bs) {visibility} pure returns ({name} memory) {{
@@ -16,7 +16,7 @@ MAIN_DECODER = """
 
 INNER_FIELD_DECODER = """
       {control}if(fieldId == {id}) {{
-        p += _read_{field}({args});
+        pointer += _read_{field}({args});
       }}"""
 
 INNER_ARRAY_ALLOCATOR = """
@@ -31,26 +31,23 @@ INNER_DECODER = """
     {struct} memory r;
     uint[{n}] memory counters;
     uint fieldId;
-    ProtoBufParser.WireType wireType;
+    ProtoBufRuntime.WireType wireType;
     uint bytesRead;
     uint offset = p;
-    while(p < offset+sz) {{
-      (fieldId, wireType, bytesRead) = ProtoBufParser._decode_key(p, bs);
-      p += bytesRead;
-      {first_pass}
-    }}
-    {second_pass}
+    uint pointer = p;
+    while(pointer < offset+sz) {{
+      (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
+      pointer += bytesRead;{first_pass}
+    }}{second_pass}
     return (r, sz);
   }}
 """
 
 INNER_DECODER_SECOND_PASS = """
-    p = offset;
-    {allocators}
-    while(p < offset+sz) {{
-      (fieldId, wireType, bytesRead) = ProtoBufParser._decode_key(p, bs);
-      p += bytesRead;
-      {second_pass}
+    pointer = offset;{allocators}
+    while(pointer < offset+sz) {{
+      (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
+      pointer += bytesRead;{second_pass}
     }}"""
 
 FIELD_READER = """
@@ -68,9 +65,10 @@ FIELD_READER = """
 STRUCT_DECORDER = """
   function {name}(uint p, bytes memory bs)
       internal pure returns ({struct} memory, uint) {{
-    (uint sz, uint bytesRead) = ProtoBufParser._decode_varint(p, bs);
-    p += bytesRead;
-    ({decode_type} r,) = {lib}._decode(p, bs, sz);
+    uint pointer = p;
+    (uint sz, uint bytesRead) = ProtoBufRuntime._decode_varint(pointer, bs);
+    pointer += bytesRead;
+    ({decode_type} r,) = {lib}._decode(pointer, bs, sz);
     return (r, sz + bytesRead);
   }}"""
 
