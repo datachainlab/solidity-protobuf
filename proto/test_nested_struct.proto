@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+import "SolidityTypes.proto";
+message Inner {
+  string string_field = 1;
+}
+message TestNestedStruct {
+  repeated Inner inner_field = 1;
+  bool bool_field = 4;
+}

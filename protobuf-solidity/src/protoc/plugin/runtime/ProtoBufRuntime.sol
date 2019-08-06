@@ -133,7 +133,7 @@ library ProtoBufRuntime {
 
   function _decode_key(uint p, bytes memory bs) internal pure returns (uint, WireType, uint) {
     (uint x, uint n) = _decode_varint(p, bs);
-    WireType typeId  = WireType(x & 7);
+    WireType typeId = WireType(x & 7);
     uint fieldId = x / 8;
     return (fieldId, typeId, n);
   }

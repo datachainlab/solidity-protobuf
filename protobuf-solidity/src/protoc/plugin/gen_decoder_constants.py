@@ -60,7 +60,8 @@ FIELD_READER = """
       if(counters[{i}] > 0) counters[{i}] -= 1;
     }}
     return sz;
-  }}"""
+  }}
+"""
 
 STRUCT_DECORDER = """
   function {name}(uint p, bytes memory bs)
@@ -70,14 +71,13 @@ STRUCT_DECORDER = """
     pointer += bytesRead;
     ({decode_type} r,) = {lib}._decode(pointer, bs, sz);
     return (r, sz + bytesRead);
-  }}"""
+  }}
+"""
 
 DECODER_SECTION = """
   // Decoder section
 {main_decoder}
-  // innter decoder
+  // inner decoder
 {inner_decoder}
   // field readers
-{field_readers}
-  // struct decoder
-{struct_decoders}"""
+{field_readers}{struct_decoders}"""

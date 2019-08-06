@@ -194,6 +194,11 @@ def is_map_type(f, nested_type):
     return len(list(filter(lambda t: t.name == "MapFieldEntry" and t.options and t.options.map_entry ,nested_type))) > 0
   return False
 
+def to_camel_case(name):
+  if "_" in name:
+    return name.replace("_", " ").title().replace(" ", "")
+  return name[:1].upper() + name[1:]
+
 def add_prefix(prefix, name, sep = ""):
   return ("" if (prefix is None) else (prefix + sep)) + name
 

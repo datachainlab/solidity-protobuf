@@ -14,7 +14,7 @@ contract TestRepeatedAddPB {
 
   function storeTestRepeated(address key, uint256[] memory uint256s) public {
       TestRepeatedAdd.Data memory data = TestRepeatedAdd.Data({uint256s: uint256s});
-      TestRepeatedAdd.add_uint256s(data, 12800);
+      TestRepeatedAdd.addUint256s(data, 12800);
       bytes memory encoded = TestRepeatedAdd.encode(data);
       ProtoBufRuntime.encodeStorage(contracts[key], encoded);
   }

@@ -134,7 +134,7 @@ def gen_map_helper_codes_for_field(f, nested_type):
   else:
     value_storage_type = ""
   return (sol_constants.MAP_HELPER_CODE).format(
-    name = f.name,
+    name = util.to_camel_case(f.name),
     val_name = "self.{0}".format(f.name),
     map_name = "self._size_{0}".format(f.name),
     key_type = key_type,
@@ -148,7 +148,7 @@ def gen_map_helper_codes_for_field(f, nested_type):
 def gen_array_helper_codes_for_field(f):
   field_type = util.gen_global_type_name_from_field(f)
   return (sol_constants.ARRAY_HELPER_CODE).format(
-    name = f.name,
+    name = util.to_camel_case(f.name),
     val_name = "self.{0}".format(f.name),
     field_type = field_type,
     field_storage_type = "memory" if util.is_complex_type(field_type) else ""

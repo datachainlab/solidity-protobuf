@@ -16,26 +16,26 @@ contract TestMapPB {
     bytes storage location = contracts[key];
     bytes memory encoded = ProtoBufRuntime.decodeStorage(location);
     TestMap.Data memory memoryData = TestMap.decode(encoded);
-    return TestMap.get_map_field(memoryData, mapKey);
+    return TestMap.getMapField(memoryData, mapKey);
   }
 
   function storeTestMap(address key, string memory mapKey, string memory mapValue) public {
     TestMap.Data memory memoryData;
-    TestMap.add_map_field(memoryData, mapKey, mapValue);
+    TestMap.addMapField(memoryData, mapKey, mapValue);
     bytes memory encoded = TestMap.encode(memoryData);
     ProtoBufRuntime.encodeStorage(contracts[key], encoded);
   }
 
   function createTestState(address key) public {
     TestMap.Data memory memoryData;
-    TestMap.add_map_field(memoryData, "zero", "zero_value");
-    TestMap.add_map_field(memoryData, "one", "one_value");
-    TestMap.add_map_field(memoryData, "two", "two_value");
-    TestMap.add_map_field(memoryData, "three", "three_value");
-    TestMap.add_map_field(memoryData, "four", "four_value");
-    TestMap.add_map_field(memoryData, "three", "three_value_new");
-    TestMap.rm_map_field(memoryData, "zero");
-    TestMap.rm_map_field(memoryData, "invalid");
+    TestMap.addMapField(memoryData, "zero", "zero_value");
+    TestMap.addMapField(memoryData, "one", "one_value");
+    TestMap.addMapField(memoryData, "two", "two_value");
+    TestMap.addMapField(memoryData, "three", "three_value");
+    TestMap.addMapField(memoryData, "four", "four_value");
+    TestMap.addMapField(memoryData, "three", "three_value_new");
+    TestMap.rmMapField(memoryData, "zero");
+    TestMap.rmMapField(memoryData, "invalid");
     bytes memory encoded = TestMap.encode(memoryData);
     ProtoBufRuntime.encodeStorage(contracts[key], encoded);
   }

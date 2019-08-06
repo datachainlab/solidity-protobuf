@@ -101,9 +101,14 @@ def gen_struct_decoders(msg, parent_struct_name):
 
 
 def gen_decoder_section(msg, parent_struct_name):
+  struct_decoders = gen_struct_decoders(msg, parent_struct_name)
+  if struct_decoders.strip():
+    struct_decoders = "\n  // struct decoder" + struct_decoders
+  else:
+    struct_decoders = ""
   return (decoder_constants.DECODER_SECTION).format(
     main_decoder = gen_main_decoder(msg, parent_struct_name),
     inner_decoder = gen_inner_decoder(msg, parent_struct_name),
     field_readers = gen_field_readers(msg, parent_struct_name),
-    struct_decoders = gen_struct_decoders(msg, parent_struct_name)
+    struct_decoders = struct_decoders
   )

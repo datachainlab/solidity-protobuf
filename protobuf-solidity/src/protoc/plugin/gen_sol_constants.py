@@ -17,6 +17,7 @@ UTILITY_FUNCTION = """
       r := 0
     }}
   }}
+
   function isNil({name} memory x) internal pure returns (bool r) {{
     assembly {{
       r := iszero(x)
@@ -36,14 +37,14 @@ STORE_MESSAGE = "    {lib}.store(input.{field}, output.{field});\n"
 STORE_OTHER = "    output.{field} = input.{field};\n"
 
 STORE_FUNCTION = """
-    //store function
+  //store function
   function store({name} memory input, {name} storage output) internal {{
 {store_codes}
   }}"""
 
 MAP_HELPER_CODE = """
   //map helpers for {name}
-  function get_{name}(Data memory self, {key_type} {key_storage_type} key) internal pure returns ({value_type} {value_storage_type}) {{
+  function get{name}(Data memory self, {key_type} {key_storage_type} key) internal pure returns ({value_type} {value_storage_type}) {{
     {value_type} {value_storage_type} defaultValue;
     for (uint i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
@@ -54,7 +55,7 @@ MAP_HELPER_CODE = """
     return defaultValue;
   }}
 
-  function search_{name}(Data memory self, {key_type} {key_storage_type} key) internal pure returns (bool, {value_type} {value_storage_type}) {{
+  function search{name}(Data memory self, {key_type} {key_storage_type} key) internal pure returns (bool, {value_type} {value_storage_type}) {{
     {value_type} {value_storage_type} defaultValue;
     for (uint i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
@@ -65,7 +66,7 @@ MAP_HELPER_CODE = """
     return (false, defaultValue);
   }}
 
-  function add_{name}(Data memory self, {key_type} {key_storage_type} key, {value_type} {value_storage_type} value) internal pure {{
+  function add{name}(Data memory self, {key_type} {key_storage_type} key, {value_type} {value_storage_type} value) internal pure {{
     for (uint i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
       if (keccak256(abi.encodePacked((key))) == keccak256(abi.encodePacked((data.key)))) {{
@@ -89,7 +90,7 @@ MAP_HELPER_CODE = """
     {val_name}[{map_name}++] = entry;
   }}
 
-  function rm_{name}(Data memory self, {key_type} {key_storage_type} key) internal pure {{
+  function rm{name}(Data memory self, {key_type} {key_storage_type} key) internal pure {{
     uint pos;
     for (uint i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
@@ -107,7 +108,7 @@ MAP_HELPER_CODE = """
 
 ARRAY_HELPER_CODE = """
   //array helpers for {name}
-  function add_{name}(Data memory self, {field_type} {field_storage_type} value) internal pure {{
+  function add{name}(Data memory self, {field_type} {field_storage_type} value) internal pure {{
     {field_type}[] memory tmp = new {field_type}[]({val_name}.length + 1);
     for (uint i = 0; i < {val_name}.length; i++) {{
       tmp[i] = {val_name}[i];
