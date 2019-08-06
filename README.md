@@ -2,6 +2,8 @@
 
 ProtoSolGen is a protocol buffer client generator for Solidity. Its main purpose is to allow Ethereum developers to define custom data structure using protocol buffer, and generates Solidity stubs for data serialization and deserialization.
 
+ProtoSolGen is inspired by [pb3sol](https://raw.githubusercontent.com/umegaya/pb3sol) with optimization on performance, flexibility and usability.
+
 <h2 align="center">Introduction</h2>
 
 Protocol buffer is a language-neutral, platform-neutral, extensible way of serializing structured data for use in communications protocols, data storage, and more. It's widely adopted as in various platforms, and it has several characteristics to make it particularly beneficial to Ethereum development.
