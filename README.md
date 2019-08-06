@@ -26,6 +26,8 @@ Protocol buffer has rich support in languages including Java, JavaScript, Python
 
 The binary of protocol buffer data pertains the data type definition as well as field number. This ensures type-safety of data either on-chain or passed-in externally.
 
+Moreover, Protocol Buffer simplifies the usage of complex data structure in the paramters and return values of external functions. There might be still hidden risk in using ABIEncoderV2, especially with the known bug identified in March 2019. ProtoSolGen allows auto-serialization of the complex data types so that we could use string as paramter/return value types instead of relying on ABIEncoderV2.
+
 <h2 align="center">Concept</h2>
 
 Solidity has much more basic types than protocol buffer. For example, in Solidity there are 32 signed integer types, from int8 to int256. In order to address this type mismatch, we provide a custom type defintion for each Solidity types. For example, uint128 is defined as below:
@@ -37,6 +39,16 @@ message uint128 {bytes data = 1;}
 The data, which is of type bytes, contains the minimum number of bytes needed to hold the value. For example, if the uint128 variable has a value of 20,000, 2 bytes are sufficient to hold this number. Currently we only support length-delimited encoding for value data.
 
 <h2 align="center">How to Use It</h2>
+
+### Installation
+
+To install ProtoSolGen, first install [protobuf compiler](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation).
+
+Then install python requirements.
+
+```pip install -r requirements.txt```
+
+### Data Definition
 
 Users can use the custom type definition to define their data structure. Below is an example:
 
@@ -63,7 +75,10 @@ message SellerParameter {
 
 ProtoSolGen generates a Solidity struct definition for this message as well as serialization/deserialization methods. Users can use the generated Solidity stub in their smart contracts.
 
-### Usage
-1. Install [protobuf compiler](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation)
-2. Install python requirements using `pip install -r requirements.txt`
-3. Use `run.sh` with input proto files (`--input`) and output Solidity location(`--output`)
+### Client Generation
+
+Use `run.sh` with input proto files (`--input`) and output Solidity location(`--output`)
+
+```
+./run.sh --input <proto file path> --output <output directory>
+```
