@@ -1456,7 +1456,6 @@ library ProtoBufRuntime {
   }
 
   function _encode_sol_raw_bytes_array(bytes32 x, uint p, bytes memory bs, uint sz) internal pure returns (uint) {
-    bool shouldSkip = true;
     uint actualSize = sz;
     for (uint i = 0; i < sz; i++) {
       uint8 current = uint8(x[sz - 1 - i]);

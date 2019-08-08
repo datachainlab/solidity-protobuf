@@ -21,18 +21,13 @@ contract('TestIntegerDeserialization', (accounts) => {
         resolve(TestInteger);
       });
     });
-    let testNumber = BigNumber(513);
-    let convertedNumber = testNumber.toString(16);
-    if (convertedNumber.length % 2 != 0) {
-      convertedNumber = "0" + convertedNumber;
-    }
-    let data = Uint8Array.from(Buffer.from(convertedNumber, 'hex'));
     let payload = {
       "uint64Field": {
-        "data": data
+        "data": new Uint8Array(2)
       }
     };
     let message = TestInteger.fromObject(payload);
+    message.uint64Field.saveAsBytes(513);
     let buffer = TestInteger.encode(message).finish();
     let result = await contractInstance.getTestIntegerUint64("0x" + buffer.toString('hex'));
     console.log(result);

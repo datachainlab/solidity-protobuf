@@ -6,10 +6,4 @@ contract TestBytesDeserialization {
     TestBytes.Data memory data = TestBytes.decode(encoded);
     return data.bytes2_field;
   }
-
-  function getEncodedMessage(bytes2 b) public pure returns (bytes memory) {
-    TestBytes.Data memory data;
-    data.bytes2_field = bytes2(0x1234);
-    return TestBytes.encode(data);
-  }
 }
