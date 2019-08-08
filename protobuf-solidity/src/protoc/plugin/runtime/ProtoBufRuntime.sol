@@ -133,7 +133,7 @@ library ProtoBufRuntime {
 
   function _decode_key(uint p, bytes memory bs) internal pure returns (uint, WireType, uint) {
     (uint x, uint n) = _decode_varint(p, bs);
-    WireType typeId = WireType(x & 7);
+    WireType typeId  = WireType(x & 7);
     uint fieldId = x / 8;
     return (fieldId, typeId, n);
   }
@@ -451,6 +451,8 @@ library ProtoBufRuntime {
 
   function _decode_sol_bytesN(uint8 n, uint p, bytes memory bs) internal pure returns (bytes32, uint) {
     (uint len, uint sz) = _decode_varint(p, bs);
+    uint wordLength = WORD_LENGTH;
+    uint byteSize = BYTE_SIZE;
     if (len + sz > n + 3) {
       revert();
     }
@@ -458,6 +460,9 @@ library ProtoBufRuntime {
     bytes32 acc;
     assembly {
       acc := mload(add(p, bs))
+      let difference := sub(wordLength, sub(len, 2))
+      let bits := mul(byteSize, difference)
+      acc := shl(bits, shr(bits, acc))
     }
     return (acc, len + sz);
   }
@@ -663,13 +668,8 @@ library ProtoBufRuntime {
   }
 
   function _decode_sol_bytes(uint8 n, uint p, bytes memory bs) internal pure returns (bytes32, uint) {
-    (bytes32 u, uint sz) = _decode_sol_bytesN_lower(n, p, bs);
-    int r;
-    assembly {
-      r := u
-      r := signextend(sub(sz, 4), r)
-    }
-    return (bytes32(r), sz);
+    (bytes32 u, uint sz) = _decode_sol_bytesN(n, p, bs);
+    return (u, sz);
   }
 
   function _decode_sol_int8(uint p, bytes memory bs) internal pure returns (int8, uint) {
@@ -1256,131 +1256,131 @@ library ProtoBufRuntime {
   }
 
   function _encode_sol_bytes1(bytes1 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 1, p, bs);
+    return _encode_sol_bytes(bytes32(x), 1, p, bs);
   }
 
   function _encode_sol_bytes2(bytes2 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 2, p, bs);
+    return _encode_sol_bytes(bytes32(x), 2, p, bs);
   }
 
   function _encode_sol_bytes3(bytes3 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 3, p, bs);
+    return _encode_sol_bytes(bytes32(x), 3, p, bs);
   }
 
   function _encode_sol_bytes4(bytes4 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 4, p, bs);
+    return _encode_sol_bytes(bytes32(x), 4, p, bs);
   }
 
   function _encode_sol_bytes5(bytes5 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 5, p, bs);
+    return _encode_sol_bytes(bytes32(x), 5, p, bs);
   }
 
   function _encode_sol_bytes6(bytes6 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 6, p, bs);
+    return _encode_sol_bytes(bytes32(x), 6, p, bs);
   }
 
   function _encode_sol_bytes7(bytes7 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 7, p, bs);
+    return _encode_sol_bytes(bytes32(x), 7, p, bs);
   }
 
   function _encode_sol_bytes8(bytes8 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 8, p, bs);
+    return _encode_sol_bytes(bytes32(x), 8, p, bs);
   }
 
   function _encode_sol_bytes9(bytes9 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 9, p, bs);
+    return _encode_sol_bytes(bytes32(x), 9, p, bs);
   }
 
   function _encode_sol_bytes10(bytes10 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 10, p, bs);
+    return _encode_sol_bytes(bytes32(x), 10, p, bs);
   }
 
   function _encode_sol_bytes11(bytes11 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 11, p, bs);
+    return _encode_sol_bytes(bytes32(x), 11, p, bs);
   }
 
   function _encode_sol_bytes12(bytes12 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 12, p, bs);
+    return _encode_sol_bytes(bytes32(x), 12, p, bs);
   }
 
   function _encode_sol_bytes13(bytes13 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 13, p, bs);
+    return _encode_sol_bytes(bytes32(x), 13, p, bs);
   }
 
   function _encode_sol_bytes14(bytes14 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 14, p, bs);
+    return _encode_sol_bytes(bytes32(x), 14, p, bs);
   }
 
   function _encode_sol_bytes15(bytes15 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 15, p, bs);
+    return _encode_sol_bytes(bytes32(x), 15, p, bs);
   }
 
   function _encode_sol_bytes16(bytes16 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 16, p, bs);
+    return _encode_sol_bytes(bytes32(x), 16, p, bs);
   }
 
   function _encode_sol_bytes17(bytes17 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 17, p, bs);
+    return _encode_sol_bytes(bytes32(x), 17, p, bs);
   }
 
   function _encode_sol_bytes18(bytes18 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 18, p, bs);
+    return _encode_sol_bytes(bytes32(x), 18, p, bs);
   }
 
   function _encode_sol_bytes19(bytes19 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 19, p, bs);
+    return _encode_sol_bytes(bytes32(x), 19, p, bs);
   }
 
   function _encode_sol_bytes20(bytes20 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 20, p, bs);
+    return _encode_sol_bytes(bytes32(x), 20, p, bs);
   }
 
   function _encode_sol_bytes21(bytes21 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 21, p, bs);
+    return _encode_sol_bytes(bytes32(x), 21, p, bs);
   }
 
   function _encode_sol_bytes22(bytes22 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 22, p, bs);
+    return _encode_sol_bytes(bytes32(x), 22, p, bs);
   }
 
   function _encode_sol_bytes23(bytes23 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 23, p, bs);
+    return _encode_sol_bytes(bytes32(x), 23, p, bs);
   }
 
   function _encode_sol_bytes24(bytes24 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 24, p, bs);
+    return _encode_sol_bytes(bytes32(x), 24, p, bs);
   }
 
   function _encode_sol_bytes25(bytes25 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 25, p, bs);
+    return _encode_sol_bytes(bytes32(x), 25, p, bs);
   }
 
   function _encode_sol_bytes26(bytes26 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 26, p, bs);
+    return _encode_sol_bytes(bytes32(x), 26, p, bs);
   }
 
   function _encode_sol_bytes27(bytes27 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 27, p, bs);
+    return _encode_sol_bytes(bytes32(x), 27, p, bs);
   }
 
   function _encode_sol_bytes28(bytes28 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 28, p, bs);
+    return _encode_sol_bytes(bytes32(x), 28, p, bs);
   }
 
   function _encode_sol_bytes29(bytes29 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 29, p, bs);
+    return _encode_sol_bytes(bytes32(x), 29, p, bs);
   }
 
   function _encode_sol_bytes30(bytes30 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 30, p, bs);
+    return _encode_sol_bytes(bytes32(x), 30, p, bs);
   }
 
   function _encode_sol_bytes31(bytes31 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(bytes32(x)), 31, p, bs);
+    return _encode_sol_bytes(bytes32(x), 31, p, bs);
   }
 
   function _encode_sol_bytes32(bytes32 x, uint p, bytes memory bs) internal pure returns (uint) {
-    return _encode_sol(int(x), 32, p, bs);
+    return _encode_sol_bytes(x, 32, p, bs);
   }
 
   function _encode_sol_header(uint sz, uint p, bytes memory bs) internal pure returns (uint) {
@@ -1406,6 +1406,16 @@ library ProtoBufRuntime {
     uint size;
     p += 3;
     size = _encode_sol_raw_other(x, p, bs, sz);
+    p += size;
+    _encode_sol_header(size, offset, bs);
+    return p - offset;
+  }
+
+  function _encode_sol_bytes(bytes32 x, uint sz, uint p, bytes memory bs) internal pure returns (uint) {
+    uint offset = p;
+    uint size;
+    p += 3;
+    size = _encode_sol_raw_bytes_array(x, p, bs, sz);
     p += size;
     _encode_sol_header(size, offset, bs);
     return p - offset;
@@ -1443,6 +1453,29 @@ library ProtoBufRuntime {
       realSize += 1;
     }
     return realSize;
+  }
+
+  function _encode_sol_raw_bytes_array(bytes32 x, uint p, bytes memory bs, uint sz) internal pure returns (uint) {
+    bool shouldSkip = true;
+    uint actualSize = sz;
+    for (uint i = 0; i < sz; i++) {
+      uint8 current = uint8(x[sz - 1 - i]);
+      if (current == 0 && actualSize > 1) {
+        actualSize--;
+      } else {
+        break;
+      }
+    }
+    assembly {
+      let bsptr := add(bs, p)
+      let count := actualSize
+      for {} gt(count, 0) {} {
+        mstore8(bsptr, byte(sub(actualSize, count), x))
+        bsptr := add(bsptr, 1)
+        count := sub(count, 1)
+      }
+    }
+    return actualSize;
   }
 
   function _encode_sol_raw_other(int x, uint p, bytes memory bs, uint sz) internal pure returns (uint) {

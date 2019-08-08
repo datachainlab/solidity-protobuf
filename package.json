@@ -1,7 +1,7 @@
 {
-  "name": "nuts-platform",
+  "name": "solidity-protobuf",
   "version": "1.0.0",
-  "description": "The NUTS Platform",
+  "description": "Solidity Protobuf Parser",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
@@ -27,7 +27,8 @@
     "solhint": "^1.5.0",
     "solidity-coverage": "github:rotcivegaf/solidity-coverage#5875f5b7bc74d447f3312c9c0e9fc7814b482477",
     "solidity-docgen": "^0.2.0-alpha.0",
-    "truffle": "^5.0.14"
+    "truffle": "^5.0.14",
+    "protobufjs": "^6.8.8"
   },
   "scripts": {
     "test": "truffle test --development"
@@ -39,7 +40,7 @@
   "author": "Shengda Ding",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/nutsfoundation/nuts-platform/issues"
+    "url": "https://github.com/nutsfinance/solidity-protobuf/issues"
   },
-  "homepage": "https://github.com/nutsfoundation/nuts-platform#readme"
+  "homepage": "https://github.com/nutsfinance/solidity-protobuf#readme"
 }
