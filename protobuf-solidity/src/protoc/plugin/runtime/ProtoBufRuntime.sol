@@ -66,6 +66,33 @@ library ProtoBufRuntime {
     return encoded;
   }
 
+  function copyBytes(uint src, uint dest, uint len) internal pure {
+    // Copy word-length chunks while possible
+    for (; len >= WORD_LENGTH; len -= WORD_LENGTH) {
+      assembly {
+        mstore(dest, mload(src))
+      }
+      dest += WORD_LENGTH;
+      src += WORD_LENGTH;
+    }
+
+    // Copy remaining bytes
+    uint mask = 256 ** (WORD_LENGTH - len) - 1;
+    assembly {
+      let srcpart := and(mload(src), not(mask))
+      let destpart := and(mload(dest), mask)
+      mstore(dest, or(destpart, srcpart))
+    }
+  }
+
+  function getMemoryAddress(bytes memory r) internal pure returns (uint) {
+    uint addr;
+    assembly {
+      addr := r
+    }
+    return addr;
+  }
+
   function ceil(uint a, uint m) internal pure returns (uint r) {
     return (a + m - 1) / m;
   }

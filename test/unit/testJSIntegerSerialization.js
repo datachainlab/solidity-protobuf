@@ -23,14 +23,19 @@ contract('TestIntegerDeserialization', (accounts) => {
     });
     let payload = {
       "uint64Field": {
-        "data": new Uint8Array(2)
+      },
+      "addressField": {
       }
     };
     let message = TestInteger.fromObject(payload);
     message.uint64Field.saveAsBytes(513);
+    message.addressField.saveAsBytes(BigNumber(accounts[0].toString().toLowerCase()));
     let buffer = TestInteger.encode(message).finish();
     let result = await contractInstance.getTestIntegerUint64("0x" + buffer.toString('hex'));
+    let address = await contractInstance.getTestAddress("0x" + buffer.toString('hex'));
     console.log(result);
+    console.log(address);
     assert.equal(513, result.toNumber());
+    assert.equal(accounts[0], address);
   })
 });

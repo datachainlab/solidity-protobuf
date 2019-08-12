@@ -6,4 +6,9 @@ contract TestIntegerDeserialization {
     TestInteger.Data memory data = TestInteger.decode(encoded);
     return data.uint64_field;
   }
+
+  function getTestAddress(bytes memory encoded) public pure returns (address) {
+    TestInteger.Data memory data = TestInteger.decode(encoded);
+    return data.address_field;
+  }
 }

@@ -8,7 +8,7 @@ contract('TestOtherPB', (accounts) => {
   }),
   it('should return same values', async () => {
     let string_field_expected = "abc";
-    let bool_field_expected = true;
+    let bool_field_expected = false;
     let enum_field_expected = 1;
 
     await contractInstance.storeTestOther(accounts[0], [0x01, 0x02],

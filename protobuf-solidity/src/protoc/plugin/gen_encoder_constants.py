@@ -28,7 +28,8 @@ INNER_ENCODER = """
   function _encode({struct} memory r, uint p, bytes memory bs)
       internal pure returns (uint) {{
     uint offset = p;
-    uint pointer = p;{counter}{encoders}
+    uint pointer = p;
+    {counter}{encoders}
     return pointer - offset;
   }}"""
 
@@ -37,8 +38,14 @@ NESTED_ENCODER = """
       internal pure returns (uint) {{
     uint offset = p;
     uint pointer = p;
-    pointer += ProtoBufRuntime._encode_varint(_estimate(r), pointer, bs);
-    pointer += _encode(r, pointer, bs);
+    bytes memory tmp = new bytes(_estimate(r));
+    uint tmpAddr = ProtoBufRuntime.getMemoryAddress(tmp);
+    uint bsAddr = ProtoBufRuntime.getMemoryAddress(bs);
+    uint size = _encode(r, 32, tmp);
+    pointer += ProtoBufRuntime._encode_varint(size, pointer, bs);
+    ProtoBufRuntime.copyBytes(tmpAddr + 32, bsAddr + pointer, size);
+    pointer += size;
+    delete tmp;
     return pointer - offset;
   }}"""
 
