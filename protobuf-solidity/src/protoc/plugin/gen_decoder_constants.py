@@ -4,11 +4,21 @@ INNER_FIELD_DECODER_REGULAR = "pointer, bs, r, counters"
 INNER_FIELD_DECODER_NIL = "pointer, bs, nil(), counters"
 
 MAIN_DECODER = """
+  /**
+   * @dev The main decoder for memory
+   * @param bs The bytes array to be decoded
+   * @return The decoded struct
+   */
   function decode(bytes memory bs) {visibility} pure returns ({name} memory) {{
     (Data memory x,) = _decode(32, bs, bs.length);
     return x;
   }}
 
+  /**
+   * @dev The main decoder for storage
+   * @param self The in-storage struct
+   * @param bs The bytes array to be decoded
+   */
   function decode({name} storage self, bytes memory bs) {visibility} {{
     (Data memory x,) = _decode(32, bs, bs.length);
     store(x, self);
@@ -26,6 +36,14 @@ INNER_MAP_SIZE = """
     r._size_{field} = counters[{i}];"""
 
 INNER_DECODER = """
+  /**
+   * @dev The decoder for internal usage
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @param sz The number of bytes expected
+   * @return The decoded struct
+   * @return The number of bytes decoded
+   */
   function _decode(uint p, bytes memory bs, uint sz)
       internal pure returns ({struct} memory, uint) {{
     {struct} memory r;
@@ -51,7 +69,18 @@ INNER_DECODER_SECOND_PASS = """
     }}"""
 
 FIELD_READER = """
+  /**
+   * @dev The decoder for reading a field
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @param r The in-memory struct
+   * @param counters The counters for repeated fields
+   * @return The number of bytes decoded
+   */
   function _read_{field}(uint p, bytes memory bs, {t} memory r, uint[{n}] memory counters) internal pure returns (uint) {{
+    /**
+     * if `r` is NULL, then only counting the number of fields. 
+     */
     ({decode_type} x, uint sz) = {decoder}(p, bs);
     if(isNil(r)) {{
       counters[{i}] += 1;
@@ -64,6 +93,13 @@ FIELD_READER = """
 """
 
 STRUCT_DECORDER = """
+  /**
+   * @dev The decoder for reading a inner struct field
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @return The decoded inner-struct
+   * @return The number of bytes used to decode
+   */
   function {name}(uint p, bytes memory bs)
       internal pure returns ({struct} memory, uint) {{
     uint pointer = p;

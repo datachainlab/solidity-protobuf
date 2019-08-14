@@ -1,4 +1,9 @@
 MAIN_ENCODER = """
+  /**
+   * @dev The main encoder for memory
+   * @param r The struct to be encoded
+   * @return The encoded byte array
+   */
   function encode({struct} memory r) {visibility} pure returns (bytes memory) {{
     bytes memory bs = new bytes(_estimate(r));
     uint sz = _encode(r, 32, bs);
@@ -25,6 +30,13 @@ INNER_FIELD_ENCODER_NOT_REPEATED = """
     pointer += {encoder}(r.{field}, pointer, bs);"""
 
 INNER_ENCODER = """
+  /**
+   * @dev The encoder for internal usage
+   * @param r The struct to be encoded
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @return The number of bytes encoded
+   */
   function _encode({struct} memory r, uint p, bytes memory bs)
       internal pure returns (uint) {{
     uint offset = p;
@@ -34,8 +46,19 @@ INNER_ENCODER = """
   }}"""
 
 NESTED_ENCODER = """
+  /**
+   * @dev The encoder for inner struct
+   * @param r The struct to be encoded
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @return The number of bytes encoded
+   */
   function _encode_nested({struct} memory r, uint p, bytes memory bs)
       internal pure returns (uint) {{
+    /**
+     * First encoded `r` into a temporary array, and encode the actual size used. 
+     * Then copy the temporary array into `bs`. 
+     */    
     uint offset = p;
     uint pointer = p;
     bytes memory tmp = new bytes(_estimate(r));
@@ -63,6 +86,10 @@ FIELD_ESTIMATOR_NOT_REPEATED = """
     e += {szKey} + {szItem};"""
 
 ESTIMATOR = """
+  /**
+   * @dev The estimator for a struct{param}
+   * @return The number of bytes encoded in estimation
+   */
   function _estimate({struct} memory {varname}) internal {mutability} returns (uint) {{
     uint e;{counter}{estimators}
     return e;

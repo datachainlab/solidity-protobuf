@@ -7,6 +7,10 @@ def gen_main_decoder(msg, parent_struct_name):
     name = util.gen_internal_struct_name(msg, parent_struct_name)
   )
 
+"""
+Generate decoder for a field. If it is a repeated field, a second pass is required,
+and the first pass is to determine the number of elements. 
+"""
 def gen_inner_field_decoder(field, parent_struct_name, first_pass, index):
   args = ""
   repeated = util.field_is_repeated(field)
@@ -56,6 +60,9 @@ def gen_inner_maps_size(msg, parent_struct_name):
   return ''.join(map(lambda f: gen_inner_map_size(f, msg.nested_type), msg.field))
 
 def gen_inner_decoder(msg, parent_struct_name):
+  """
+    If there are not repeated fields, the second pass is not generated. 
+  """
   allocators = gen_inner_array_allocators(msg, parent_struct_name) + "\n" + gen_inner_maps_size(msg, parent_struct_name)
   if allocators.strip():
     second_pass = decoder_constants.INNER_DECODER_SECOND_PASS.format(

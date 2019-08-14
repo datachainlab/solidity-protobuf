@@ -45,6 +45,9 @@ def gen_nested_encoder(msg, parent_struct_name):
     struct = util.gen_internal_struct_name(msg, parent_struct_name)
   )
 
+"""
+  Determine the estimated size given the field type
+"""
 def gen_field_scalar_size(f):
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
@@ -107,6 +110,7 @@ def gen_estimator(msg, parent_struct_name):
   return (encoder_constants.ESTIMATOR).format(
     struct = util.gen_internal_struct_name(msg, parent_struct_name),
     varname = "r" if not_pure else "/* r */",
+    param = "\n   * @param r The struct to be encoded" if not_pure else "",
     mutability = "pure",
     counter = "uint i;" if has_repeated_field(msg.field) else "",
     estimators = est
