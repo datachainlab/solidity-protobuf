@@ -36,55 +36,56 @@ function saveAsBytes(number, type) {
   return data;
 }
 
-var SolidityPrototypeExtension = {
-  isAddress: function() {
-    return this.type == "address";
-  },
-  toAddress: function () {
-    return "0x" + this.data.toString('hex');
-  },
-  toNumber: function () {
-    return toBigInt(this.data, this.type).toNumber();
-  },
-  toBigInt: function () {
-    return toBigInt(this.data, this.type);
-  },
-  isBytes: function() {
-    return this.type == "bytes";
-  },
-  toBytes: function () {
-    return this.data;
-  },
-  saveAsBytes: function (number) {
-    this.data = saveAsBytes(number, this.type);
-  }
-}
-function Soliditize(proto, typename) {
-  function SolidityType(properties) {
-    this.type = typename;
-  }
-  Object.assign(SolidityType.prototype, SolidityPrototypeExtension);
-  proto.ctor = SolidityType;
-}
 module.exports = {
   importTypes: function (proto) {
-    Soliditize(proto.lookup("solidity.address"), "address");
+    proto.solidity['address'].prototype.saveAsBytes = function(data) {
+      let result = saveAsBytes(data, "biguint");
+      this.setData(result);
+    }
+
+    proto.solidity['address'].prototype.toAddress = function() {
+      let result = this.getData();
+      return "0x" + Buffer.from(result).toString('hex');
+    }
+
     for (let i = 8; i <= 256; i += 8) {
-      Soliditize(proto.lookup("solidity.uint" + i.toString()), "biguint");
-      Soliditize(proto.lookup("solidity.int" + i.toString()), "bigint");
-    }
-    for (let i = 1; i <= 32; i++) {
-      Soliditize(proto.lookup("solidity.bytes" + i), "bytes");
-    }
-  },
-  importProtoFile: function (protobufjs) {
-    let origResolvePath = protobufjs.Root.prototype.resolvePath;
-    protobufjs.Root.prototype.resolvePath = function (filename, path) {
-      if (path.endsWith("SolidityTypes.proto")) {
-        return origResolvePath(filename, __dirname + "/../protobuf-solidity/src/protoc/include/SolidityTypes.proto");
+      proto.solidity['uint' + i].prototype.saveAsBytes = function(data) {
+        let result = saveAsBytes(data, "biguint");
+        this.setData(result);
       }
-      return origResolvePath(filename, path);
+
+      proto.solidity['uint' + i].prototype.toBigInt = function() {
+        let result = this.getData();
+        return toBigInt(result, "biguint");
+      }
+
+      proto.solidity['uint' + i].prototype.toNumber = function() {
+        let result = this.getData();
+        return toBigInt(result, "biguint").toNumber();
+      }
+
+      proto.solidity['int' + i].prototype.saveAsBytes = function(data) {
+        let result = saveAsBytes(data, "bigint");
+        this.setData(result);
+      }
+
+      proto.solidity['int' + i].prototype.toBigInt = function() {
+        let result = this.getData();
+        return toBigInt(result, "bigint");
+      }
+
+      proto.solidity['int' + i].prototype.toNumber = function() {
+        let result = this.getData();
+        return toBigInt(result, "bigint").toNumber();
+      }
     }
-    return protobufjs;
+
+    for (let i = 1; i <= 32; i++) {
+      proto.solidity['bytes' + i].prototype.toHex = function() {
+        let result = this.getData();
+        return "0x" + Buffer.from(result).toString('hex');
+      }
+    }
+    return proto;
   }
 }

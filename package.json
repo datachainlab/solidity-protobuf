@@ -28,7 +28,7 @@
     "solidity-coverage": "github:rotcivegaf/solidity-coverage#5875f5b7bc74d447f3312c9c0e9fc7814b482477",
     "solidity-docgen": "^0.2.0-alpha.0",
     "truffle": "^5.0.14",
-    "protobufjs": "^6.8.8"
+    "google-protobuf": "^3.3.0"
   },
   "scripts": {
     "test": "truffle test --development"
