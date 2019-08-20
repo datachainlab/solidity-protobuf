@@ -11,6 +11,9 @@ library ProtoBufRuntime {
   uint constant HEADER_SIZE_LENGTH_IN_BYTES = 4;
   uint constant BYTE_SIZE = 8;
   uint constant REMAINING_LENGTH = WORD_LENGTH - HEADER_SIZE_LENGTH_IN_BYTES;
+  string constant OVERFLOW_MESSAGE = "length overflow";
+  uint32 constant ERROR_FUNCTION_SELECTOR = 0x08c379a0;
+  uint constant ERROR_DATA_OFFSET = 32;
 
   //Storages
   /**
@@ -308,10 +311,18 @@ library ProtoBufRuntime {
      */
     uint x = 0;
     uint sz = 0;
+    uint length = bs.length + WORD_LENGTH;
     assembly {
       let b := 0x80
       p := add(bs, p)
       for {} eq(0x80, and(b, 0x80)) {} {
+        if eq(lt(sub(p, bs), length), 0) {
+          mstore(0, 0x08c379a000000000000000000000000000000000000000000000000000000000) //error function selector
+          mstore(4, 32)
+          mstore(36, 15)
+          mstore(68, 0x6c656e677468206f766572666c6f770000000000000000000000000000000000) // length overflow in hex
+          revert(0, 83)
+        }
         b := byte(0, mload(p))
         x := or(x, shl(mul(7, sz), and(0x7f, b)))
         sz := add(sz, 1)
@@ -352,10 +363,18 @@ library ProtoBufRuntime {
      * Refer to https://developers.google.com/protocol-buffers/docs/encoding
      */
     uint x = 0;
+    uint length = bs.length + WORD_LENGTH;
     assembly {
       let i := 0
       p := add(bs, p)
       for {} lt(i, sz) {} {
+        if eq(lt(sub(p, bs), length), 0) {
+          mstore(0, 0x08c379a000000000000000000000000000000000000000000000000000000000) //error function selector
+          mstore(4, 32)
+          mstore(36, 15)
+          mstore(68, 0x6c656e677468206f766572666c6f770000000000000000000000000000000000) // length overflow in hex
+          revert(0, 83)
+        }
         x := or(x, shl(mul(8, i), byte(0, mload(p))))
         p := add(p, 0x01)
         i := add(i, 1)
@@ -408,11 +427,19 @@ library ProtoBufRuntime {
      */
     (uint len, uint sz) = _decode_varint(p, bs);
     bytes memory b = new bytes(len);
+    uint length = bs.length + WORD_LENGTH;
     assembly {
       let bptr  := add(b, 32)
       let count := 0
-      p := add(add(bs, p),sz)
+      p := add(add(bs, p), sz)
       for {} lt(count, len) {} {
+        if eq(lt(sub(p, bs), length), 0) {
+          mstore(0, 0x08c379a000000000000000000000000000000000000000000000000000000000) //error function selector
+          mstore(4, 32)
+          mstore(36, 15)
+          mstore(68, 0x6c656e677468206f766572666c6f770000000000000000000000000000000000) // length overflow in hex
+          revert(0, 83)
+        }
         mstore8(bptr, byte(0, mload(p)))
         p := add(p, 1)
         bptr := add(bptr, 1)
@@ -653,7 +680,7 @@ library ProtoBufRuntime {
       return 3;
     }
     else {
-      revert();
+      revert("not supported");
     }
   }
 
@@ -730,11 +757,12 @@ library ProtoBufRuntime {
     uint r;
     (uint len, uint sz) = _decode_varint(p, bs);
     if (len + sz > n + 3) {
-      revert();
+      revert(OVERFLOW_MESSAGE);
     }
     p += 3;
+    require(p < bs.length + WORD_LENGTH, OVERFLOW_MESSAGE);
     assembly {
-      r := mload(add(p,bs))
+      r := mload(add(p, bs))
     }
     for (uint i = len - 2; i < WORD_LENGTH; i++) {
       r /= 256;
@@ -755,10 +783,11 @@ library ProtoBufRuntime {
     uint wordLength = WORD_LENGTH;
     uint byteSize = BYTE_SIZE;
     if (len + sz > n + 3) {
-      revert();
+      revert(OVERFLOW_MESSAGE);
     }
     p += 3;
     bytes32 acc;
+    require(p < bs.length + WORD_LENGTH, OVERFLOW_MESSAGE);
     assembly {
       acc := mload(add(p, bs))
       let difference := sub(wordLength, sub(len, 2))

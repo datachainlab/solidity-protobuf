@@ -56,6 +56,28 @@ INNER_DECODER = """
     while(pointer < offset+sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{first_pass}
+      else {{
+        if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_fixed64(pointer, bs);
+          pointer += size;
+        }}
+        if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_fixed32(pointer, bs);
+          pointer += size;
+        }}
+        if (wireType == ProtoBufRuntime.WireType.Varint) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_varint(pointer, bs);
+          pointer += size;
+        }}
+        if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_lendelim(pointer, bs);
+          pointer += size;
+        }}
+      }}
     }}{second_pass}
     return (r, sz);
   }}
@@ -66,6 +88,28 @@ INNER_DECODER_SECOND_PASS = """
     while(pointer < offset+sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{second_pass}
+      else {{
+        if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_fixed64(pointer, bs);
+          pointer += size;
+        }}
+        if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_fixed32(pointer, bs);
+          pointer += size;
+        }}
+        if (wireType == ProtoBufRuntime.WireType.Varint) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_varint(pointer, bs);
+          pointer += size;
+        }}
+        if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
+          uint size;
+          (, size) = ProtoBufRuntime._decode_lendelim(pointer, bs);
+          pointer += size;
+        }}
+      }}
     }}"""
 
 FIELD_READER = """
@@ -79,7 +123,7 @@ FIELD_READER = """
    */
   function _read_{field}(uint p, bytes memory bs, {t} memory r, uint[{n}] memory counters) internal pure returns (uint) {{
     /**
-     * if `r` is NULL, then only counting the number of fields. 
+     * if `r` is NULL, then only counting the number of fields.
      */
     ({decode_type} x, uint sz) = {decoder}(p, bs);
     if(isNil(r)) {{
