@@ -1,0 +1,5 @@
+include README.md
+include protobuf-solidity/bin/*
+include protobuf-solidity/src/protoc/include/*
+include protobuf-solidity/src/protoc/plugin/*.py
+include protobuf-solidity/src/protoc/runtime/*.proto

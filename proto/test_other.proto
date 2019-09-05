@@ -2,9 +2,7 @@ syntax = "proto3";
 
 import "SolidityTypes.proto";
 message TestOther {
-  bytes bytes_field = 1;
-  string string_field = 2;
-  bool bool_field = 3;
+  bool bool_field = 1;
   enum Corpus {
     UNIVERSAL = 0;
     WEB = 1;
@@ -14,5 +12,7 @@ message TestOther {
     PRODUCTS = 5;
     VIDEO = 6;
   }
-  Corpus enum_field = 4;
+  Corpus enum_field = 2;
+  bytes bytes_field = 3;
+  string string_field = 4;
 }
