@@ -1,6 +1,8 @@
 import sys
 import gen_util as util
 import gen_encoder_constants as encoder_constants
+from google.protobuf.descriptor_pb2 import FieldDescriptorProto
+
 def gen_main_encoder(msg, parent_struct_name):
   return (encoder_constants.MAIN_ENCODER).format(
     visibility = util.gen_visibility(False),
@@ -13,25 +15,30 @@ def has_repeated_field(fields):
       return True
   return False
 
-def gen_inner_field_encoder(f, nested_type):
-  # sys.stderr.write(str(f))
-  # sys.stderr.write(str(nested_type))
+def gen_inner_field_encoder(f, msg):
+  type_name = util.gen_enum_name_from_field(f)
   if util.field_is_repeated(f):
-    if util.is_map_type(f, nested_type):
+    if util.is_map_type(f, msg.nested_type):
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_MAP
+    elif f.type == FieldDescriptorProto.TYPE_ENUM :
+      template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_ENUM
     else:
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED
+  elif f.type == FieldDescriptorProto.TYPE_ENUM :
+    template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED_ENUM
   else:
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED
   return template.format(
     field = f.name,
     key = f.number,
     wiretype = util.gen_wire_type(f),
-    encoder = util.gen_encoder_name(f)
+    encoder = util.gen_encoder_name(f),
+    enum_name = type_name.split(".")[-1],
+    library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
   )
 
 def gen_inner_field_encoders(msg, parent_struct_name):
-  return ''.join(list(map((lambda f: gen_inner_field_encoder(f, msg.nested_type)), msg.field)))
+  return ''.join(list(map((lambda f: gen_inner_field_encoder(f, msg)), msg.field)))
 
 def gen_inner_encoder(msg, parent_struct_name):
   return (encoder_constants.INNER_ENCODER).format(
@@ -48,13 +55,21 @@ def gen_nested_encoder(msg, parent_struct_name):
 """
   Determine the estimated size given the field type
 """
-def gen_field_scalar_size(f):
+def gen_field_scalar_size(f, msg):
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
   fname = f.name + ("[i]" if util.field_is_repeated(f) else "")
   if wt == "Varint":
     if vt == "bool":
       return "1"
+    if vt == "enum":
+      type_name = util.gen_enum_name_from_field(f)
+      return ("ProtoBufRuntime._sz_{valtype}({library_name}encode_{enum_name}(r.{field}))").format(
+        valtype = vt,
+        field = fname,
+        enum_name = type_name.split(".")[-1],
+        library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+      )
     else:
       return ("ProtoBufRuntime._sz_{valtype}(r.{field})").format(
         valtype = vt,
@@ -87,9 +102,9 @@ def gen_field_scalar_size(f):
   else:
     return ("__does not support wire type {t}__").format(t = wt)
 
-def gen_field_estimator(f, nested_type):
+def gen_field_estimator(f, msg):
   if util.field_is_repeated(f):
-    if util.is_map_type(f, nested_type):
+    if util.is_map_type(f, msg.nested_type):
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED_MAP
     else:
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED
@@ -98,11 +113,11 @@ def gen_field_estimator(f, nested_type):
   return template.format(
     field = f.name,
     szKey = (1 if f.number < 16 else 2),
-    szItem = gen_field_scalar_size(f)
+    szItem = gen_field_scalar_size(f, msg)
   )
 
 def gen_field_estimators(msg, parent_struct_name):
-  return ''.join(list(map((lambda f: gen_field_estimator(f, msg.nested_type)), msg.field)))
+  return ''.join(list(map((lambda f: gen_field_estimator(f, msg)), msg.field)))
 
 def gen_estimator(msg, parent_struct_name):
   est = gen_field_estimators(msg, parent_struct_name)

@@ -50,10 +50,17 @@ def gen_struct_definition(msg, parent_struct_name):
     map_fields = "\n    //non serialized fields" + map_fields
   else:
     map_fields = ""
-  return (sol_constants.STRUCT_DEFINITION).format(
-    fields = gen_fields(msg),
-    map_fields = map_fields
-  )
+  fields = gen_fields(msg)
+  if (fields or map_fields):
+    return (sol_constants.STRUCT_DEFINITION).format(
+      fields = gen_fields(msg),
+      map_fields = map_fields
+    )
+  else:
+    return (sol_constants.STRUCT_DEFINITION).format(
+      fields = "    bool x;",
+      map_fields = map_fields
+    )
 
 def gen_enums(msg):
   return '\n'.join(list(map(util.gen_enumtype, msg.enum_type)))
@@ -160,7 +167,7 @@ def gen_map_helper(nested_type, parent_msg, parent_struct_name, all_map_fields):
     map_fields = list(filter(
       lambda f: util.gen_struct_name_from_field(f) == pb_nested_struct_name,
       parent_msg.field))
-    all_map_fields.extend(map_fields)  
+    all_map_fields.extend(map_fields)
     return ''.join(list(map(lambda f: gen_map_helper_codes_for_field(f, nested_type), map_fields)))
   else:
     return ''

@@ -184,7 +184,7 @@ TYPE_MESSAGE = 11
 PB_LIB_NAME_PREFIX = ""
 PB_CURRENT_PACKAGE = ""
 LIBRARY_LINKING_MODE = False
-ENUM_AS_CONSTANT = True
+ENUM_AS_CONSTANT = False
 SOLIDITY_VERSION = "0.5.0"
 SOLIDITY_PRAGMAS = []
 
@@ -326,14 +326,42 @@ def gen_fieldtype(field):
     return t
 
 def gen_enumvalue_entry(v):
-  return "{name} = {number},".format(
+  if v[0] == 0:
+    return "{name}".format(
+      name = v[1].name,
+    )
+  else:
+    return ",\n    {name}".format(
+      name = v[1].name,
+    )
+
+def gen_enumencoder_entry(v, name):
+  return util_constants.ENUM_ENCODE_FUNCTION_INNER.format(
     name = v.name,
-    number = v.number
+    value = v.number,
+    enum_name = name
+  )
+
+def gen_enumdecoder_entry(v, name):
+  return util_constants.ENUM_DECODE_FUNCTION_INNER.format(
+    name = v.name,
+    value = v.number,
+    enum_name = name
   )
 
 def gen_enumvalues(e):
-  return '\n    '.join(
-    list(map(gen_enumvalue_entry, e.value))
+  return ''.join(
+    list(map(gen_enumvalue_entry, enumerate(e.value)))
+  )
+
+def gen_enum_encoders(e):
+  return '\n'.join(
+    list(map(lambda t: gen_enumencoder_entry(t, e.name), e.value))
+  )
+
+def gen_enum_decoders(e):
+  return '\n'.join(
+    list(map(lambda t: gen_enumdecoder_entry(t, e.name), e.value))
   )
 
 def gen_enumtype(e):
@@ -348,10 +376,19 @@ def gen_enumtype(e):
       e.value))
     )
   else:
-    return util_constants.ENUM_FUNCTION.format(
+    definition = util_constants.ENUM_FUNCTION.format(
       enum_name = e.name,
       enum_values = gen_enumvalues(e)
     )
+    encoder = util_constants.ENUM_ENCODE_FUNCTION.format(
+      enum_name = e.name,
+      enum_values = gen_enum_encoders(e)
+    )
+    decoder = util_constants.ENUM_DECODE_FUNCTION.format(
+      enum_name = e.name,
+      enum_values = gen_enum_decoders(e)
+    )
+    return definition + "\n" + encoder + "\n" + decoder
 
 def gen_struct_decoder_name_from_field(field):
   ftid, _ = gen_field_type_id(field)

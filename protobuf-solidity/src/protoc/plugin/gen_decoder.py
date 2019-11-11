@@ -1,5 +1,6 @@
 import gen_util as util
 import gen_decoder_constants as decoder_constants
+from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 
 def gen_main_decoder(msg, parent_struct_name):
   return (decoder_constants.MAIN_DECODER).format(
@@ -9,7 +10,7 @@ def gen_main_decoder(msg, parent_struct_name):
 
 """
 Generate decoder for a field. If it is a repeated field, a second pass is required,
-and the first pass is to determine the number of elements. 
+and the first pass is to determine the number of elements.
 """
 def gen_inner_field_decoder(field, parent_struct_name, first_pass, index):
   args = ""
@@ -61,7 +62,7 @@ def gen_inner_maps_size(msg, parent_struct_name):
 
 def gen_inner_decoder(msg, parent_struct_name):
   """
-    If there are not repeated fields, the second pass is not generated. 
+    If there are not repeated fields, the second pass is not generated.
   """
   allocators = gen_inner_array_allocators(msg, parent_struct_name) + "\n" + gen_inner_maps_size(msg, parent_struct_name)
   if allocators.strip():
@@ -71,15 +72,30 @@ def gen_inner_decoder(msg, parent_struct_name):
     )
   else:
     second_pass = ""
+  first_pass = gen_inner_fields_decoder(msg, parent_struct_name, True)
   return (decoder_constants.INNER_DECODER).format(
     struct = util.gen_internal_struct_name(msg, parent_struct_name),
     n = util.max_field_number(msg) + 1,
-    first_pass = gen_inner_fields_decoder(msg, parent_struct_name, True),
+    first_pass = first_pass,
+    else_statement = decoder_constants.INNER_DECODER_ELSE.format() if first_pass else "",
     second_pass = second_pass
   )
 
 def gen_field_reader(f, parent_struct_name, msg):
   suffix = ("[r.{field}.length - counters[{i}]]").format(field = f.name, i = f.number) if util.field_is_repeated(f) else ""
+  if f.type == FieldDescriptorProto.TYPE_ENUM:
+    type_name = util.gen_enum_name_from_field(f)
+    return (decoder_constants.ENUM_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = util.gen_global_type_decl_from_field(f),
+      t = util.gen_internal_struct_name(msg, parent_struct_name),
+      i = f.number,
+      n = util.max_field_number(msg) + 1,
+      suffix = suffix,
+      enum_name = type_name.split(".")[-1],
+      library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+    )
   return (decoder_constants.FIELD_READER).format(
     field = f.name,
     decoder = util.gen_decoder_name(f),

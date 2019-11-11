@@ -374,7 +374,7 @@ library ProtoBufRuntime {
      */
     uint x = 0;
     uint length = bs.length + WORD_LENGTH;
-    require(p + sz <= length, OVERFLOW_MESSAGE);
+    assert(p + sz <= length);
     assembly {
       let i := 0
       p := add(bs, p)
@@ -433,7 +433,7 @@ library ProtoBufRuntime {
     (uint len, uint sz) = _decode_varint(p, bs);
     bytes memory b = new bytes(len);
     uint length = bs.length + WORD_LENGTH;
-    require(p + sz + len <= length, OVERFLOW_MESSAGE);
+    assert(p + sz + len <= length);
     uint sourcePtr;
     uint destPtr;
     assembly {
@@ -755,7 +755,7 @@ library ProtoBufRuntime {
       revert(OVERFLOW_MESSAGE);
     }
     p += 3;
-    require(p < bs.length + WORD_LENGTH, OVERFLOW_MESSAGE);
+    assert(p < bs.length + WORD_LENGTH);
     assembly {
       r := mload(add(p, bs))
     }
@@ -782,7 +782,7 @@ library ProtoBufRuntime {
     }
     p += 3;
     bytes32 acc;
-    require(p < bs.length + WORD_LENGTH, OVERFLOW_MESSAGE);
+    assert(p < bs.length + WORD_LENGTH);
     assembly {
       acc := mload(add(p, bs))
       let difference := sub(wordLength, sub(len, 2))

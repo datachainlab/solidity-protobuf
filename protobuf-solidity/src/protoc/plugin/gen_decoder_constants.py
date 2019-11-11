@@ -56,6 +56,13 @@ INNER_DECODER = """
     while(pointer < offset+sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{first_pass}
+      {else_statement}
+    }}{second_pass}
+    return (r, sz);
+  }}
+"""
+
+INNER_DECODER_ELSE = """
       else {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
           uint size;
@@ -78,11 +85,7 @@ INNER_DECODER = """
           pointer += size;
         }}
       }}
-    }}{second_pass}
-    return (r, sz);
-  }}
 """
-
 INNER_DECODER_SECOND_PASS = """
     pointer = offset;{allocators}
     while(pointer < offset+sz) {{
@@ -126,6 +129,31 @@ FIELD_READER = """
      * if `r` is NULL, then only counting the number of fields.
      */
     ({decode_type} x, uint sz) = {decoder}(p, bs);
+    if(isNil(r)) {{
+      counters[{i}] += 1;
+    }} else {{
+      r.{field}{suffix} = x;
+      if(counters[{i}] > 0) counters[{i}] -= 1;
+    }}
+    return sz;
+  }}
+"""
+
+ENUM_FIELD_READER = """
+  /**
+   * @dev The decoder for reading a field
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @param r The in-memory struct
+   * @param counters The counters for repeated fields
+   * @return The number of bytes decoded
+   */
+  function _read_{field}(uint p, bytes memory bs, {t} memory r, uint[{n}] memory counters) internal pure returns (uint) {{
+    /**
+     * if `r` is NULL, then only counting the number of fields.
+     */
+    (int64 tmp, uint sz) = {decoder}(p, bs);
+    {decode_type} x = {library_name}decode_{enum_name}(tmp);
     if(isNil(r)) {{
       counters[{i}] += 1;
     }} else {{

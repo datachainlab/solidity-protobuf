@@ -19,6 +19,14 @@ INNER_FIELD_ENCODER_REPEATED = """
       pointer += {encoder}(r.{field}[i], pointer, bs);
     }}"""
 
+INNER_FIELD_ENCODER_REPEATED_ENUM = """
+    int64 _enum_{field};
+    for(i = 0; i < r.{field}.length; i++) {{
+      pointer += ProtoBufRuntime._encode_key({key}, ProtoBufRuntime.WireType.{wiretype}, pointer, bs);
+      _enum_{field} = {library_name}encode_{enum_name}(r.{field}[i]);
+      pointer += {encoder}(_enum_{field}, pointer, bs);
+    }}"""
+
 INNER_FIELD_ENCODER_REPEATED_MAP = """
     for(i = 0; i < r._size_{field}; i++) {{
       pointer += ProtoBufRuntime._encode_key({key}, ProtoBufRuntime.WireType.{wiretype}, pointer, bs);
@@ -28,6 +36,11 @@ INNER_FIELD_ENCODER_REPEATED_MAP = """
 INNER_FIELD_ENCODER_NOT_REPEATED = """
     pointer += ProtoBufRuntime._encode_key({key}, ProtoBufRuntime.WireType.{wiretype}, pointer, bs);
     pointer += {encoder}(r.{field}, pointer, bs);"""
+
+INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
+    pointer += ProtoBufRuntime._encode_key({key}, ProtoBufRuntime.WireType.{wiretype}, pointer, bs);
+    int64 _enum_{field} = {library_name}encode_{enum_name}(r.{field});
+    pointer += {encoder}(_enum_{field}, pointer, bs);"""
 
 INNER_ENCODER = """
   /**
@@ -56,9 +69,9 @@ NESTED_ENCODER = """
   function _encode_nested({struct} memory r, uint p, bytes memory bs)
       internal pure returns (uint) {{
     /**
-     * First encoded `r` into a temporary array, and encode the actual size used. 
-     * Then copy the temporary array into `bs`. 
-     */    
+     * First encoded `r` into a temporary array, and encode the actual size used.
+     * Then copy the temporary array into `bs`.
+     */
     uint offset = p;
     uint pointer = p;
     bytes memory tmp = new bytes(_estimate(r));

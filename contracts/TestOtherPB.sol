@@ -25,7 +25,7 @@ contract TestOtherPB {
     return data.bool_field;
   }
 
-  function getTestOtherEnum(address key) public view returns (int64) {
+  function getTestOtherEnum(address key) public view returns (TestOther.Corpus) {
     bytes storage location = contracts[key];
     bytes memory encoded = ProtoBufRuntime.decodeStorage(location);
     TestOther.Data memory data = TestOther.decode(encoded);
@@ -34,7 +34,7 @@ contract TestOtherPB {
 
   function storeTestOther(address key, bytes memory bytes_field,
     string memory string_field, bool bool_field,
-    int64 enum_field) public {
+    TestOther.Corpus enum_field) public {
       TestOther.Data memory data = TestOther.Data({bytes_field: bytes_field, string_field: string_field,
         bool_field: bool_field, enum_field: enum_field});
       bytes memory encoded = TestOther.encode(data);
