@@ -8,7 +8,7 @@ ENUMS_DEFINITION = """
   //enum definition{enums}"""
 
 MAP_FIELD_DEFINITION = """
-    uint _size_{name};"""
+    uint256 _size_{name};"""
 
 UTILITY_FUNCTION = """
   //utility functions
@@ -35,7 +35,7 @@ UTILITY_FUNCTION = """
 
 STORE_REPEATED = """
     output.{field}.length = input.{field}.length;
-    for(uint i{i} = 0; i{i} < input.{field}.length; i{i}++) {{
+    for(uint256 i{i} = 0; i{i} < input.{field}.length; i{i}++) {{
       {lib}.store(input.{field}[i{i}], output.{field}[i{i}]);
     }}
     {map_insert_code}
@@ -64,9 +64,13 @@ MAP_HELPER_CODE = """
    * @param key The key to get
    * @return The value in map if it exists
    */
-  function get{name}(Data memory self, {key_type} {key_storage_type} key) internal pure returns ({value_type} {value_storage_type}) {{
+  function get{name}(Data memory self, {key_type} {key_storage_type} key) 
+    internal 
+    pure 
+    returns ({value_type} {value_storage_type}) 
+  {{
     {value_type} {value_storage_type} defaultValue;
-    for (uint i = 0; i < {map_name}; i++) {{
+    for (uint256 i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
       if (keccak256(abi.encodePacked((key))) == keccak256(abi.encodePacked((data.key)))) {{
         return data.value;
@@ -82,9 +86,13 @@ MAP_HELPER_CODE = """
    * @return Whether the key exists in the map
    * @return The value in map if it exists
    */
-  function search{name}(Data memory self, {key_type} {key_storage_type} key) internal pure returns (bool, {value_type} {value_storage_type}) {{
+  function search{name}(Data memory self, {key_type} {key_storage_type} key) 
+    internal 
+    pure 
+    returns (bool, {value_type} {value_storage_type}) 
+  {{
     {value_type} {value_storage_type} defaultValue;
-    for (uint i = 0; i < {map_name}; i++) {{
+    for (uint256 i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
       if (keccak256(abi.encodePacked((key))) == keccak256(abi.encodePacked((data.key)))) {{
         return (true, data.value);
@@ -99,13 +107,16 @@ MAP_HELPER_CODE = """
    * @param key The key to add
    * @param value The value to add
    */
-  function add{name}(Data memory self, {key_type} {key_storage_type} key, {value_type} {value_storage_type} value) internal pure {{
+  function add{name}(Data memory self, {key_type} {key_storage_type} key, {value_type} {value_storage_type} value) 
+    internal 
+    pure 
+  {{
     /**
      * First search whether the key exists. 
      * If not, add to the array. Otherwise, replace the value. 
      * If a resize is needed, the array size will be doubled. 
      */
-    for (uint i = 0; i < {map_name}; i++) {{
+    for (uint256 i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
       if (keccak256(abi.encodePacked((key))) == keccak256(abi.encodePacked((data.key)))) {{
         {val_name}[i].value = value;
@@ -117,7 +128,7 @@ MAP_HELPER_CODE = """
     }}
     if ({map_name} == {val_name}.length) {{
       {field_type}[] memory tmp = new {field_type}[]({val_name}.length * 2);
-      for (uint i = 0; i < {map_name}; i++) {{
+      for (uint256 i = 0; i < {map_name}; i++) {{
         tmp[i] = {val_name}[i];
       }}
       {val_name} = tmp;
@@ -139,8 +150,8 @@ MAP_HELPER_CODE = """
      * If not, do nothing. 
      * Otherwise, replace with last key-value pair in the array. 
      */
-    uint pos;
-    for (uint i = 0; i < {map_name}; i++) {{
+    uint256 pos;
+    for (uint256 i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
       if (keccak256(abi.encodePacked((key))) == keccak256(abi.encodePacked((data.key)))) {{
         pos = i + 1;
@@ -166,7 +177,7 @@ ARRAY_HELPER_CODE = """
      * First resize the array. Then add the new element to the end.
      */
     {field_type}[] memory tmp = new {field_type}[]({val_name}.length + 1);
-    for (uint i = 0; i < {val_name}.length; i++) {{
+    for (uint256 i = 0; i < {val_name}.length; i++) {{
       tmp[i] = {val_name}[i];
     }}
     tmp[{val_name}.length] = value;

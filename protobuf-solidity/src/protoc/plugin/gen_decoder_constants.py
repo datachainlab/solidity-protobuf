@@ -10,7 +10,7 @@ MAIN_DECODER = """
    * @return The decoded struct
    */
   function decode(bytes memory bs) {visibility} pure returns ({name} memory) {{
-    (Data memory x,) = _decode(32, bs, bs.length);
+    (Data memory x, ) = _decode(32, bs, bs.length);
     return x;
   }}
 
@@ -20,12 +20,12 @@ MAIN_DECODER = """
    * @param bs The bytes array to be decoded
    */
   function decode({name} storage self, bytes memory bs) {visibility} {{
-    (Data memory x,) = _decode(32, bs, bs.length);
+    (Data memory x, ) = _decode(32, bs, bs.length);
     store(x, self);
   }}"""
 
 INNER_FIELD_DECODER = """
-      {control}if(fieldId == {id}) {{
+      {control}if (fieldId == {id}) {{
         pointer += _read_{field}({args});
       }}"""
 
@@ -44,16 +44,19 @@ INNER_DECODER = """
    * @return The decoded struct
    * @return The number of bytes decoded
    */
-  function _decode(uint p, bytes memory bs, uint sz)
-      internal pure returns ({struct} memory, uint) {{
+  function _decode(uint256 p, bytes memory bs, uint256 sz)
+    internal 
+    pure 
+    returns ({struct} memory, uint) 
+  {{
     {struct} memory r;
     uint[{n}] memory counters;
-    uint fieldId;
+    uint256 fieldId;
     ProtoBufRuntime.WireType wireType;
-    uint bytesRead;
-    uint offset = p;
-    uint pointer = p;
-    while(pointer < offset+sz) {{
+    uint256 bytesRead;
+    uint256 offset = p;
+    uint256 pointer = p;
+    while (pointer < offset + sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{first_pass}
       {else_statement}
@@ -65,22 +68,22 @@ INNER_DECODER = """
 INNER_DECODER_ELSE = """
       else {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_fixed64(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_fixed32(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.Varint) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_varint(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_lendelim(pointer, bs);
           pointer += size;
         }}
@@ -88,27 +91,27 @@ INNER_DECODER_ELSE = """
 """
 INNER_DECODER_SECOND_PASS = """
     pointer = offset;{allocators}
-    while(pointer < offset+sz) {{
+    while (pointer < offset + sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{second_pass}
       else {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_fixed64(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_fixed32(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.Varint) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_varint(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          uint size;
+          uint256 size;
           (, size) = ProtoBufRuntime._decode_lendelim(pointer, bs);
           pointer += size;
         }}
@@ -124,16 +127,21 @@ FIELD_READER = """
    * @param counters The counters for repeated fields
    * @return The number of bytes decoded
    */
-  function _read_{field}(uint p, bytes memory bs, {t} memory r, uint[{n}] memory counters) internal pure returns (uint) {{
+  function _read_{field}(
+    uint256 p, 
+    bytes memory bs, 
+    {t} memory r, 
+    uint[{n}] memory counters
+  ) internal pure returns (uint) {{
     /**
      * if `r` is NULL, then only counting the number of fields.
      */
-    ({decode_type} x, uint sz) = {decoder}(p, bs);
-    if(isNil(r)) {{
+    ({decode_type} x, uint256 sz) = {decoder}(p, bs);
+    if (isNil(r)) {{
       counters[{i}] += 1;
     }} else {{
       r.{field}{suffix} = x;
-      if(counters[{i}] > 0) counters[{i}] -= 1;
+      if (counters[{i}] > 0) counters[{i}] -= 1;
     }}
     return sz;
   }}
@@ -148,13 +156,18 @@ ENUM_FIELD_READER = """
    * @param counters The counters for repeated fields
    * @return The number of bytes decoded
    */
-  function _read_{field}(uint p, bytes memory bs, {t} memory r, uint[{n}] memory counters) internal pure returns (uint) {{
+  function _read_{field}(
+    uint256 p, 
+    bytes memory bs, 
+    {t} memory r, 
+    uint[{n}] memory counters
+  ) internal pure returns (uint) {{
     /**
      * if `r` is NULL, then only counting the number of fields.
      */
-    (int64 tmp, uint sz) = {decoder}(p, bs);
+    (int64 tmp, uint256 sz) = {decoder}(p, bs);
     {decode_type} x = {library_name}decode_{enum_name}(tmp);
-    if(isNil(r)) {{
+    if (isNil(r)) {{
       counters[{i}] += 1;
     }} else {{
       r.{field}{suffix} = x;
@@ -172,12 +185,15 @@ STRUCT_DECORDER = """
    * @return The decoded inner-struct
    * @return The number of bytes used to decode
    */
-  function {name}(uint p, bytes memory bs)
-      internal pure returns ({struct} memory, uint) {{
-    uint pointer = p;
-    (uint sz, uint bytesRead) = ProtoBufRuntime._decode_varint(pointer, bs);
+  function {name}(uint256 p, bytes memory bs)
+    internal 
+    pure 
+    returns ({struct} memory, uint) 
+  {{
+    uint256 pointer = p;
+    (uint256 sz, uint256 bytesRead) = ProtoBufRuntime._decode_varint(pointer, bs);
     pointer += bytesRead;
-    ({decode_type} r,) = {lib}._decode(pointer, bs, sz);
+    ({decode_type} r, ) = {lib}._decode(pointer, bs, sz);
     return (r, sz + bytesRead);
   }}
 """

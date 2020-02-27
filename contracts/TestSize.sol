@@ -6,7 +6,7 @@ contract TestSize {
     return ProtoBufRuntime._get_real_size(val, 32);
   }
 
-  function getUnsingedSize(uint val) public pure returns (uint) {
+  function getUnsingedSize(uint256 val) public pure returns (uint) {
     return ProtoBufRuntime._get_real_size(val, 32);
   }
 }

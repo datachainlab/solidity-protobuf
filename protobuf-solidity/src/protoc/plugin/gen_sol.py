@@ -225,6 +225,8 @@ def apply_options(params_string):
   if "compile_meta_schema" in params:
     global COMPILE_META_SCHEMA
     COMPILE_META_SCHEMA = True
+  if "solc_version" in params:
+    util.set_solc_version(params["solc_version"])
 
 def generate_code(request, response):
   generated = 0
@@ -281,7 +283,7 @@ def generate_code(request, response):
       with open(os.path.dirname(os.path.realpath(__file__)) + '/runtime/ProtoBufRuntime.sol', 'r') as runtime:
         rf = response.file.add()
         rf.name = RUNTIME_FILE_NAME
-        rf.content = runtime.read()
+        rf.content = 'pragma solidity ^{0};\n'.format(util.SOLIDITY_VERSION) + runtime.read()
     except Exception as e:
       sys.stderr.write(
         "required to generate solidity runtime at {} but cannot open runtime with error {}\n".format(

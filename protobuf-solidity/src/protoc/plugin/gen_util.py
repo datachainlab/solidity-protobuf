@@ -185,7 +185,7 @@ PB_LIB_NAME_PREFIX = ""
 PB_CURRENT_PACKAGE = ""
 LIBRARY_LINKING_MODE = False
 ENUM_AS_CONSTANT = False
-SOLIDITY_VERSION = "0.5.0"
+SOLIDITY_VERSION = "0.5.16"
 SOLIDITY_PRAGMAS = []
 
 # utils
@@ -449,18 +449,18 @@ def is_lib_linking_mode():
 def set_library_linking_mode():
   global LIBRARY_LINKING_MODE
   LIBRARY_LINKING_MODE = True
-  global SOLIDITY_VERSION
-  SOLIDITY_VERSION = "0.5.0"
   global SOLIDITY_PRAGMAS
   SOLIDITY_PRAGMAS = ["pragma experimental ABIEncoderV2"]
 
 def set_internal_linking_mode():
   global LIBRARY_LINKING_MODE
   LIBRARY_LINKING_MODE = False
-  global SOLIDITY_VERSION
-  SOLIDITY_VERSION = "0.5.0"
   global SOLIDITY_PRAGMAS
   SOLIDITY_PRAGMAS = []
+
+def set_solc_version(version):
+  global SOLIDITY_VERSION
+  SOLIDITY_VERSION = version
 
 def set_enum_as_constant(on):
   global ENUM_AS_CONSTANT

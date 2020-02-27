@@ -43,7 +43,7 @@ def gen_inner_field_encoders(msg, parent_struct_name):
 def gen_inner_encoder(msg, parent_struct_name):
   return (encoder_constants.INNER_ENCODER).format(
     struct = util.gen_internal_struct_name(msg, parent_struct_name),
-    counter = "uint i;" if has_repeated_field(msg.field) else "",
+    counter = "uint256 i;" if has_repeated_field(msg.field) else "",
     encoders = gen_inner_field_encoders(msg, parent_struct_name)
   )
 
@@ -127,7 +127,7 @@ def gen_estimator(msg, parent_struct_name):
     varname = "r" if not_pure else "/* r */",
     param = "\n   * @param r The struct to be encoded" if not_pure else "",
     mutability = "pure",
-    counter = "uint i;" if has_repeated_field(msg.field) else "",
+    counter = "uint256 i;" if has_repeated_field(msg.field) else "",
     estimators = est
   )
 
