@@ -185,7 +185,7 @@ PB_LIB_NAME_PREFIX = ""
 PB_CURRENT_PACKAGE = ""
 LIBRARY_LINKING_MODE = False
 ENUM_AS_CONSTANT = False
-SOLIDITY_VERSION = "0.5.16"
+SOLIDITY_VERSION = "0.6.8"
 SOLIDITY_PRAGMAS = []
 
 # utils
@@ -318,8 +318,10 @@ def gen_field_type_id(field):
     return (val, INTERNAL_TYPE_CATEGORY_BUILTIN)
   return (gen_struct_name_from_field(field), INTERNAL_TYPE_CATEGORY_USERTYPE)
 
-def gen_fieldtype(field):
+def gen_fieldtype(field, file):
   t = gen_global_type_name_from_field(field)
+  if t[0] == ".":
+    t = gen_global_enum_name(file) + t
   if field_is_repeated(field):
     return t + "[]"
   else:
@@ -426,6 +428,9 @@ def gen_wire_type(field):
 def gen_soltype_estimate_len(sol_type):
   val = SolType2BodyLen.get(sol_type, 0)
   return val + 3
+
+def gen_global_enum_name(msg):
+  return msg.name.replace(".", "_").upper() + "_" + "GLOBAL_ENUMS"
 
 def change_pb_libname_prefix(new_name):
   global PB_LIB_NAME_PREFIX

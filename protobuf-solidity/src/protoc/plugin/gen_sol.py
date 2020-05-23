@@ -14,8 +14,8 @@ import gen_util as util
 import gen_sol_constants as sol_constants
 
 
-def gen_fields(msg):
-  return '\n'.join(list(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f), name = f.name)), msg.field)))
+def gen_fields(msg, file):
+  return '\n'.join(list(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f, file), name = f.name)), msg.field)))
 
 
 def gen_map_fields_decl_for_field(f, nested_type):
@@ -44,16 +44,16 @@ def gen_map_fields(msg, parent_struct_name):
   return '\n'.join(list(map((lambda nt: gen_map_fields_helper(nt, msg, parent_struct_name)), msg.nested_type)))
 
 # below gen_* codes for generating external library
-def gen_struct_definition(msg, parent_struct_name):
+def gen_struct_definition(msg, parent_struct_name, file):
   map_fields = gen_map_fields(msg, parent_struct_name)
   if map_fields.strip():
     map_fields = "\n    //non serialized fields" + map_fields
   else:
     map_fields = ""
-  fields = gen_fields(msg)
+  fields = gen_fields(msg, file)
   if (fields or map_fields):
     return (sol_constants.STRUCT_DEFINITION).format(
-      fields = gen_fields(msg),
+      fields = gen_fields(msg, file),
       map_fields = map_fields
     )
   else:
@@ -179,28 +179,33 @@ def gen_array_helpers(msg, parent_struct_name, all_map_fields):
   array_fields = filter(lambda t: util.field_is_repeated(t) and t not in all_map_fields, msg.field)
   return ''.join(map(lambda f: gen_array_helper_codes_for_field(f),array_fields))
 
-def gen_codec(msg, main_codecs, delegate_codecs, parent_struct_name = None):
+def gen_codec(msg, main_codecs, delegate_codecs, parent_struct_name = None, file = None):
   delegate_lib_name = util.gen_delegate_lib_name(msg, parent_struct_name)
   all_map_fields = []
   # delegate codec
   delegate_codecs.append(sol_constants.CODECS.format(
     delegate_lib_name = delegate_lib_name,
     enum_definition = gen_enum_definition(msg, parent_struct_name),
-    struct_definition = gen_struct_definition(msg, parent_struct_name),
-    decoder_section = gen_decoder_section(msg, parent_struct_name),
-    encoder_section = gen_encoder_section(msg, parent_struct_name),
+    struct_definition = gen_struct_definition(msg, parent_struct_name, file),
+    decoder_section = gen_decoder_section(msg, parent_struct_name, file),
+    encoder_section = gen_encoder_section(msg, parent_struct_name, file),
     store_function = gen_store_function(msg, parent_struct_name),
     map_helper = gen_map_helpers(msg, parent_struct_name, all_map_fields),
     array_helper = gen_array_helpers(msg, parent_struct_name, all_map_fields),
     utility_functions = gen_utility_functions(msg, parent_struct_name)
   ))
   for nested in msg.nested_type:
-    gen_codec(nested, main_codecs, delegate_codecs, util.add_prefix(parent_struct_name, msg.name))
+    gen_codec(nested, main_codecs, delegate_codecs, util.add_prefix(parent_struct_name, msg.name), file)
 
-
+def gen_global_enum(msg, main_codecs, delegate_codecs, parent_struct_name = None):
+  delegate_codecs.append(sol_constants.GLOBAL_ENUM_CODECS.format(
+    delegate_lib_name = util.gen_global_enum_name(msg),
+    enum_definition = gen_enum_definition(msg, parent_struct_name),
+  ))
 
 SOLIDITY_NATIVE_TYPEDEFS = "SolidityTypes.proto"
 RUNTIME_FILE_NAME = "ProtoBufRuntime.sol"
+PROTOBUF_ANY_FILE_NAME = "GoogleProtobufAny.sol"
 GEN_RUNTIME = False
 COMPILE_META_SCHEMA = False
 def apply_options(params_string):
@@ -248,10 +253,11 @@ def generate_code(request, response):
 
     # generate sol library
     # prologue
-    output.append('pragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
+    output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
     for pragma in util.SOLIDITY_PRAGMAS:
       output.append('{0};'.format(pragma))
     output.append('import "./{0}";'.format(RUNTIME_FILE_NAME))
+    output.append('import "./{0}";'.format(PROTOBUF_ANY_FILE_NAME))
     for dep in proto_file.dependency:
       if SOLIDITY_NATIVE_TYPEDEFS in dep:
         continue
@@ -263,7 +269,9 @@ def generate_code(request, response):
     main_codecs = []
     delegate_codecs = []
     for msg in proto_file.message_type:
-      gen_codec(msg, main_codecs, delegate_codecs)
+      gen_codec(msg, main_codecs, delegate_codecs, None, proto_file)
+    if proto_file.enum_type:
+      gen_global_enum(proto_file, main_codecs, delegate_codecs, None)
 
     # epilogue
     output = output + delegate_codecs
@@ -283,11 +291,22 @@ def generate_code(request, response):
       with open(os.path.dirname(os.path.realpath(__file__)) + '/runtime/ProtoBufRuntime.sol', 'r') as runtime:
         rf = response.file.add()
         rf.name = RUNTIME_FILE_NAME
-        rf.content = 'pragma solidity ^{0};\n'.format(util.SOLIDITY_VERSION) + runtime.read()
+        rf.content = '// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};\n'.format(util.SOLIDITY_VERSION) + runtime.read()
     except Exception as e:
       sys.stderr.write(
         "required to generate solidity runtime at {} but cannot open runtime with error {}\n".format(
           RUNTIME_FILE_NAME, e
+        )
+      )
+    try:
+      with open(os.path.dirname(os.path.realpath(__file__)) + '/runtime/GoogleProtobufAny.sol', 'r') as runtime:
+        rf = response.file.add()
+        rf.name = PROTOBUF_ANY_FILE_NAME
+        rf.content = '// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};\n'.format(util.SOLIDITY_VERSION) + runtime.read()
+    except Exception as e:
+      sys.stderr.write(
+        "required to generate solidity runtime at {} but cannot open runtime with error {}\n".format(
+          PROTOBUF_ANY_FILE_NAME, e
         )
       )
 

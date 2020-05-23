@@ -45,9 +45,9 @@ INNER_DECODER = """
    * @return The number of bytes decoded
    */
   function _decode(uint256 p, bytes memory bs, uint256 sz)
-    internal 
-    pure 
-    returns ({struct} memory, uint) 
+    internal
+    pure
+    returns ({struct} memory, uint)
   {{
     {struct} memory r;
     uint[{n}] memory counters;
@@ -128,9 +128,9 @@ FIELD_READER = """
    * @return The number of bytes decoded
    */
   function _read_{field}(
-    uint256 p, 
-    bytes memory bs, 
-    {t} memory r, 
+    uint256 p,
+    bytes memory bs,
+    {t} memory r,
     uint[{n}] memory counters
   ) internal pure returns (uint) {{
     /**
@@ -157,9 +157,9 @@ ENUM_FIELD_READER = """
    * @return The number of bytes decoded
    */
   function _read_{field}(
-    uint256 p, 
-    bytes memory bs, 
-    {t} memory r, 
+    uint256 p,
+    bytes memory bs,
+    {t} memory r,
     uint[{n}] memory counters
   ) internal pure returns (uint) {{
     /**
@@ -186,9 +186,9 @@ STRUCT_DECORDER = """
    * @return The number of bytes used to decode
    */
   function {name}(uint256 p, bytes memory bs)
-    internal 
-    pure 
-    returns ({struct} memory, uint) 
+    internal
+    pure
+    returns ({struct} memory, uint)
   {{
     uint256 pointer = p;
     (uint256 sz, uint256 bytesRead) = ProtoBufRuntime._decode_varint(pointer, bs);

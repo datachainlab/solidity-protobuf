@@ -14,7 +14,7 @@ UTILITY_FUNCTION = """
   //utility functions
   /**
    * @dev Return an empty struct
-   * @return The empty struct
+   * @return r The empty struct
    */
   function nil() internal pure returns ({name} memory r) {{
     assembly {{
@@ -25,7 +25,7 @@ UTILITY_FUNCTION = """
   /**
    * @dev Test whether a struct is empty
    * @param x The struct to be tested
-   * @return True if it is empty
+   * @return r True if it is empty
    */
   function isNil({name} memory x) internal pure returns (bool r) {{
     assembly {{
@@ -34,9 +34,8 @@ UTILITY_FUNCTION = """
   }}"""
 
 STORE_REPEATED = """
-    output.{field}.length = input.{field}.length;
     for(uint256 i{i} = 0; i{i} < input.{field}.length; i{i}++) {{
-      {lib}.store(input.{field}[i{i}], output.{field}[i{i}]);
+      output.{field}.push(input.{field}[i{i}]);
     }}
     {map_insert_code}
 """
@@ -64,10 +63,10 @@ MAP_HELPER_CODE = """
    * @param key The key to get
    * @return The value in map if it exists
    */
-  function get{name}(Data memory self, {key_type} {key_storage_type} key) 
-    internal 
-    pure 
-    returns ({value_type} {value_storage_type}) 
+  function get{name}(Data memory self, {key_type} {key_storage_type} key)
+    internal
+    pure
+    returns ({value_type} {value_storage_type})
   {{
     {value_type} {value_storage_type} defaultValue;
     for (uint256 i = 0; i < {map_name}; i++) {{
@@ -86,10 +85,10 @@ MAP_HELPER_CODE = """
    * @return Whether the key exists in the map
    * @return The value in map if it exists
    */
-  function search{name}(Data memory self, {key_type} {key_storage_type} key) 
-    internal 
-    pure 
-    returns (bool, {value_type} {value_storage_type}) 
+  function search{name}(Data memory self, {key_type} {key_storage_type} key)
+    internal
+    pure
+    returns (bool, {value_type} {value_storage_type})
   {{
     {value_type} {value_storage_type} defaultValue;
     for (uint256 i = 0; i < {map_name}; i++) {{
@@ -107,14 +106,14 @@ MAP_HELPER_CODE = """
    * @param key The key to add
    * @param value The value to add
    */
-  function add{name}(Data memory self, {key_type} {key_storage_type} key, {value_type} {value_storage_type} value) 
-    internal 
-    pure 
+  function add{name}(Data memory self, {key_type} {key_storage_type} key, {value_type} {value_storage_type} value)
+    internal
+    pure
   {{
     /**
-     * First search whether the key exists. 
-     * If not, add to the array. Otherwise, replace the value. 
-     * If a resize is needed, the array size will be doubled. 
+     * First search whether the key exists.
+     * If not, add to the array. Otherwise, replace the value.
+     * If a resize is needed, the array size will be doubled.
      */
     for (uint256 i = 0; i < {map_name}; i++) {{
       {field_type} memory data = {val_name}[i];
@@ -146,9 +145,9 @@ MAP_HELPER_CODE = """
    */
   function rm{name}(Data memory self, {key_type} {key_storage_type} key) internal pure {{
     /**
-     * First search whether the key exists. 
-     * If not, do nothing. 
-     * Otherwise, replace with last key-value pair in the array. 
+     * First search whether the key exists.
+     * If not, do nothing.
+     * Otherwise, replace with last key-value pair in the array.
      */
     uint256 pos;
     for (uint256 i = 0; i < {map_name}; i++) {{
@@ -195,5 +194,11 @@ library {delegate_lib_name} {{
 {map_helper}
 {array_helper}
 {utility_functions}
+}}
+//library {delegate_lib_name}"""
+
+GLOBAL_ENUM_CODECS = """
+library {delegate_lib_name} {{
+{enum_definition}
 }}
 //library {delegate_lib_name}"""

@@ -16,9 +16,9 @@ MAIN_ENCODER = """
 INNER_FIELD_ENCODER_REPEATED = """
     for(i = 0; i < r.{field}.length; i++) {{
       pointer += ProtoBufRuntime._encode_key(
-        {key}, 
-        ProtoBufRuntime.WireType.{wiretype}, 
-        pointer, 
+        {key},
+        ProtoBufRuntime.WireType.{wiretype},
+        pointer,
         bs)
       ;
       pointer += {encoder}(r.{field}[i], pointer, bs);
@@ -28,9 +28,9 @@ INNER_FIELD_ENCODER_REPEATED_ENUM = """
     int64 _enum_{field};
     for(i = 0; i < r.{field}.length; i++) {{
       pointer += ProtoBufRuntime._encode_key(
-        {key}, 
-        ProtoBufRuntime.WireType.{wiretype}, 
-        pointer, 
+        {key},
+        ProtoBufRuntime.WireType.{wiretype},
+        pointer,
         bs
       );
       _enum_{field} = {library_name}encode_{enum_name}(r.{field}[i]);
@@ -40,9 +40,9 @@ INNER_FIELD_ENCODER_REPEATED_ENUM = """
 INNER_FIELD_ENCODER_REPEATED_MAP = """
     for(i = 0; i < r._size_{field}; i++) {{
       pointer += ProtoBufRuntime._encode_key(
-        {key}, 
-        ProtoBufRuntime.WireType.{wiretype}, 
-        pointer, 
+        {key},
+        ProtoBufRuntime.WireType.{wiretype},
+        pointer,
         bs
       );
       pointer += {encoder}(r.{field}[i], pointer, bs);
@@ -50,18 +50,18 @@ INNER_FIELD_ENCODER_REPEATED_MAP = """
 
 INNER_FIELD_ENCODER_NOT_REPEATED = """
     pointer += ProtoBufRuntime._encode_key(
-      {key}, 
-      ProtoBufRuntime.WireType.{wiretype}, 
-      pointer, 
+      {key},
+      ProtoBufRuntime.WireType.{wiretype},
+      pointer,
       bs
     );
     pointer += {encoder}(r.{field}, pointer, bs);"""
 
 INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
     pointer += ProtoBufRuntime._encode_key(
-      {key}, 
-      ProtoBufRuntime.WireType.{wiretype}, 
-      pointer, 
+      {key},
+      ProtoBufRuntime.WireType.{wiretype},
+      pointer,
       bs
     );
     int64 _enum_{field} = {library_name}encode_{enum_name}(r.{field});
@@ -76,9 +76,9 @@ INNER_ENCODER = """
    * @return The number of bytes encoded
    */
   function _encode({struct} memory r, uint256 p, bytes memory bs)
-    internal 
-    pure 
-    returns (uint) 
+    internal
+    pure
+    returns (uint)
   {{
     uint256 offset = p;
     uint256 pointer = p;
@@ -95,9 +95,9 @@ NESTED_ENCODER = """
    * @return The number of bytes encoded
    */
   function _encode_nested({struct} memory r, uint256 p, bytes memory bs)
-    internal 
-    pure 
-    returns (uint) 
+    internal
+    pure
+    returns (uint)
   {{
     /**
      * First encoded `r` into a temporary array, and encode the actual size used.

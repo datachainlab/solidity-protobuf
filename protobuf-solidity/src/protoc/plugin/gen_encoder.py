@@ -15,7 +15,7 @@ def has_repeated_field(fields):
       return True
   return False
 
-def gen_inner_field_encoder(f, msg):
+def gen_inner_field_encoder(f, msg, file):
   type_name = util.gen_enum_name_from_field(f)
   if util.field_is_repeated(f):
     if util.is_map_type(f, msg.nested_type):
@@ -28,23 +28,26 @@ def gen_inner_field_encoder(f, msg):
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED_ENUM
   else:
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED
+  library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+  if library_name == ".":
+    library_name = util.gen_global_enum_name(file) + library_name
   return template.format(
     field = f.name,
     key = f.number,
     wiretype = util.gen_wire_type(f),
     encoder = util.gen_encoder_name(f),
     enum_name = type_name.split(".")[-1],
-    library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+    library_name = library_name
   )
 
-def gen_inner_field_encoders(msg, parent_struct_name):
-  return ''.join(list(map((lambda f: gen_inner_field_encoder(f, msg)), msg.field)))
+def gen_inner_field_encoders(msg, parent_struct_name, file):
+  return ''.join(list(map((lambda f: gen_inner_field_encoder(f, msg, file)), msg.field)))
 
-def gen_inner_encoder(msg, parent_struct_name):
+def gen_inner_encoder(msg, parent_struct_name, file):
   return (encoder_constants.INNER_ENCODER).format(
     struct = util.gen_internal_struct_name(msg, parent_struct_name),
     counter = "uint256 i;" if has_repeated_field(msg.field) else "",
-    encoders = gen_inner_field_encoders(msg, parent_struct_name)
+    encoders = gen_inner_field_encoders(msg, parent_struct_name, file)
   )
 
 def gen_nested_encoder(msg, parent_struct_name):
@@ -55,7 +58,7 @@ def gen_nested_encoder(msg, parent_struct_name):
 """
   Determine the estimated size given the field type
 """
-def gen_field_scalar_size(f, msg):
+def gen_field_scalar_size(f, msg, file):
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
   fname = f.name + ("[i]" if util.field_is_repeated(f) else "")
@@ -64,11 +67,14 @@ def gen_field_scalar_size(f, msg):
       return "1"
     if vt == "enum":
       type_name = util.gen_enum_name_from_field(f)
+      library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+      if library_name == ".":
+        library_name = util.gen_global_enum_name(file) + library_name
       return ("ProtoBufRuntime._sz_{valtype}({library_name}encode_{enum_name}(r.{field}))").format(
         valtype = vt,
         field = fname,
         enum_name = type_name.split(".")[-1],
-        library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+        library_name = library_name
       )
     else:
       return ("ProtoBufRuntime._sz_{valtype}(r.{field})").format(
@@ -102,7 +108,7 @@ def gen_field_scalar_size(f, msg):
   else:
     return ("__does not support wire type {t}__").format(t = wt)
 
-def gen_field_estimator(f, msg):
+def gen_field_estimator(f, msg, file):
   if util.field_is_repeated(f):
     if util.is_map_type(f, msg.nested_type):
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED_MAP
@@ -113,14 +119,14 @@ def gen_field_estimator(f, msg):
   return template.format(
     field = f.name,
     szKey = (1 if f.number < 16 else 2),
-    szItem = gen_field_scalar_size(f, msg)
+    szItem = gen_field_scalar_size(f, msg, file)
   )
 
-def gen_field_estimators(msg, parent_struct_name):
-  return ''.join(list(map((lambda f: gen_field_estimator(f, msg)), msg.field)))
+def gen_field_estimators(msg, parent_struct_name, file):
+  return ''.join(list(map((lambda f: gen_field_estimator(f, msg, file)), msg.field)))
 
-def gen_estimator(msg, parent_struct_name):
-  est = gen_field_estimators(msg, parent_struct_name)
+def gen_estimator(msg, parent_struct_name, file):
+  est = gen_field_estimators(msg, parent_struct_name, file)
   not_pure = util.str_contains(est, "r.")
   return (encoder_constants.ESTIMATOR).format(
     struct = util.gen_internal_struct_name(msg, parent_struct_name),
@@ -131,10 +137,10 @@ def gen_estimator(msg, parent_struct_name):
     estimators = est
   )
 
-def gen_encoder_section(msg, parent_struct_name):
+def gen_encoder_section(msg, parent_struct_name, file):
   return (encoder_constants.ENCODER_SECTION).format(
     main_encoder = gen_main_encoder(msg, parent_struct_name),
-    inner_encoder = gen_inner_encoder(msg, parent_struct_name),
+    inner_encoder = gen_inner_encoder(msg, parent_struct_name, file),
     nested_encoder = gen_nested_encoder(msg, parent_struct_name),
-    estimator = gen_estimator(msg, parent_struct_name)
+    estimator = gen_estimator(msg, parent_struct_name, file)
   )
