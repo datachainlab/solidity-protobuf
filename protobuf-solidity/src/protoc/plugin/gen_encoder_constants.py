@@ -14,6 +14,7 @@ MAIN_ENCODER = """
   }}"""
 
 INNER_FIELD_ENCODER_REPEATED = """
+    {block_begin}
     for(i = 0; i < r.{field}.length; i++) {{
       pointer += ProtoBufRuntime._encode_key(
         {key},
@@ -22,9 +23,11 @@ INNER_FIELD_ENCODER_REPEATED = """
         bs)
       ;
       pointer += {encoder}(r.{field}[i], pointer, bs);
-    }}"""
+    }}
+    {block_end}"""
 
 INNER_FIELD_ENCODER_REPEATED_ENUM = """
+    {block_begin}
     int64 _enum_{field};
     for(i = 0; i < r.{field}.length; i++) {{
       pointer += ProtoBufRuntime._encode_key(
@@ -35,9 +38,11 @@ INNER_FIELD_ENCODER_REPEATED_ENUM = """
       );
       _enum_{field} = {library_name}encode_{enum_name}(r.{field}[i]);
       pointer += {encoder}(_enum_{field}, pointer, bs);
-    }}"""
+    }}
+    {block_end}"""
 
 INNER_FIELD_ENCODER_REPEATED_MAP = """
+    {block_begin}
     for(i = 0; i < r._size_{field}; i++) {{
       pointer += ProtoBufRuntime._encode_key(
         {key},
@@ -46,18 +51,22 @@ INNER_FIELD_ENCODER_REPEATED_MAP = """
         bs
       );
       pointer += {encoder}(r.{field}[i], pointer, bs);
-    }}"""
+    }}
+    {block_end}"""
 
 INNER_FIELD_ENCODER_NOT_REPEATED = """
+    {block_begin}
     pointer += ProtoBufRuntime._encode_key(
       {key},
       ProtoBufRuntime.WireType.{wiretype},
       pointer,
       bs
     );
-    pointer += {encoder}(r.{field}, pointer, bs);"""
+    pointer += {encoder}(r.{field}, pointer, bs);
+    {block_end}"""
 
 INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
+    {block_begin}
     pointer += ProtoBufRuntime._encode_key(
       {key},
       ProtoBufRuntime.WireType.{wiretype},
@@ -65,7 +74,8 @@ INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
       bs
     );
     int64 _enum_{field} = {library_name}encode_{enum_name}(r.{field});
-    pointer += {encoder}(_enum_{field}, pointer, bs);"""
+    pointer += {encoder}(_enum_{field}, pointer, bs);
+    {block_end}"""
 
 INNER_ENCODER = """
   /**
@@ -141,6 +151,15 @@ ESTIMATOR = """
     return e;
   }}"""
 
+EMPTY_CHECKER = """
+  function _empty(
+    {struct} memory r
+  ) internal pure returns (bool) {{
+    {checkers}
+    return true;
+  }}
+"""
+
 ENCODER_SECTION = """
   // Encoder section
 {main_encoder}
@@ -149,4 +168,6 @@ ENCODER_SECTION = """
   // nested encoder
 {nested_encoder}
   // estimator
-{estimator}"""
+{estimator}
+  // empty checker
+{empty_checker}"""
