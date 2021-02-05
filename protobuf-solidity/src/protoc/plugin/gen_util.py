@@ -475,3 +475,44 @@ def gen_visibility(is_decoder):
   if not LIBRARY_LINKING_MODE:
     return "internal"
   return "public" #"internal" if is_decoder else ""
+
+def simple_term(name):
+  return "r.{name}".format(name=name)
+
+def string_term(name):
+  return "bytes(r.{name}).length".format(name=name)
+
+def bytes_term(name):
+  return "r.{name}.length".format(name=name)
+
+default_values = {
+  "bytes": {"op": "!= 0", "f": bytes_term},
+  "string": {"op": "!= 0", "f": string_term},
+  "int64": {"op": "!= 0", "f": simple_term},
+  "uint64": {"op": "!= 0", "f": simple_term},
+}
+
+class IFBlock:
+  def __init__(self, field):
+    self.field = field
+    self.val = Num2PbType.get(self.field.type, None)
+
+  def block_start(self):
+    if self.val in default_values:
+      dv = default_values[self.val]
+      params = dict(
+        term=dv['f'](self.field.name),
+        field_name=self.field.name,
+        op=dv['op'],
+      )
+      return "if ({term} {op}) ".format(**params) + "{"
+    else:
+      pass
+
+    return ""
+
+  def block_end(self):
+    if self.val in default_values:
+      return "}"
+    else:
+      return ""

@@ -31,13 +31,17 @@ def gen_inner_field_encoder(f, msg, file):
   library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
   if library_name == ".":
     library_name = util.gen_global_enum_name(file) + library_name
+  block = util.IFBlock(f)
   return template.format(
+    block_start=block.block_start(),
     field = f.name,
+    num = util.Num2PbType.get(f.type, None),
     key = f.number,
     wiretype = util.gen_wire_type(f),
     encoder = util.gen_encoder_name(f),
     enum_name = type_name.split(".")[-1],
-    library_name = library_name
+    library_name = library_name,
+    block_end=block.block_end(),
   )
 
 def gen_inner_field_encoders(msg, parent_struct_name, file):

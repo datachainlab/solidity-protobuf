@@ -49,13 +49,15 @@ INNER_FIELD_ENCODER_REPEATED_MAP = """
     }}"""
 
 INNER_FIELD_ENCODER_NOT_REPEATED = """
+    {block_start}
     pointer += ProtoBufRuntime._encode_key(
       {key},
       ProtoBufRuntime.WireType.{wiretype},
       pointer,
       bs
     );
-    pointer += {encoder}(r.{field}, pointer, bs);"""
+    pointer += {encoder}(r.{field}, pointer, bs);
+    {block_end}"""
 
 INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
     pointer += ProtoBufRuntime._encode_key(
