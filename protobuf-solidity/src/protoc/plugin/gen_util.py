@@ -412,7 +412,7 @@ def gen_decoder_name(field):
       return "ProtoBufRuntime._decode_sol_" + val
     return "_decode_" + "".join(map(lambda t: t[:1].upper() + t[1:], field.type_name.split(".")))
 
-def gen_encoder_name(field):
+def gen_encoder_name(field): # structは各種type以外の例外としている
   val = Num2PbType.get(field.type, None)
   if val != None:
     return "ProtoBufRuntime._encode_" + val
@@ -421,6 +421,55 @@ def gen_encoder_name(field):
     if val != None:
       return "ProtoBufRuntime._encode_sol_" + val
     return gen_struct_codec_lib_name_from_field(field) + "._encode_nested"
+
+def gen_empty_checker_block(msg, field):
+  is_repeated = field_is_repeated(field)
+
+  if is_repeated:
+    return """
+    if ({term} {op}) {{
+      return false;
+    }}
+    """.format(term="r." + field.name + ".length", op="!= 0")
+
+  val = Num2PbType.get(field.type, None)
+  if val in default_values:
+    dv = default_values[val]
+    term=dv['f'](msg, field, field.name)
+    op = dv['op']
+    return """
+    if ({term} {op}) {{
+      return false;
+    }}
+    """.format(
+      term=term,
+      op=op,
+    )
+  else:
+    if is_struct_type(field):
+      dv = default_values['struct']
+      term=dv['f'](msg, field, field.name)
+      op = dv['op']
+      return """
+    if ({term} {op}) {{
+      return false;
+    }}
+      """.format(
+        term=term,
+        op=op,
+      )
+    else:
+      return ""
+
+def is_struct_type(field):
+  val = Num2PbType.get(field.type, None)
+  if val != None:
+    return False
+  else:
+    val = field_sol_type(field)
+    if val != None:
+      return False
+    return True
 
 def gen_wire_type(field):
   return Num2WireType.get(field.type, None)
@@ -476,24 +525,30 @@ def gen_visibility(is_decoder):
     return "internal"
   return "public" #"internal" if is_decoder else ""
 
-def simple_term(name):
+def simple_term(msg, field, name):
   return "r.{name}".format(name=name)
 
-def string_term(name):
+def string_term(msg, field, name):
   return "bytes(r.{name}).length".format(name=name)
 
-def bytes_term(name):
+def bytes_term(msg, field, name):
   return "r.{name}.length".format(name=name)
+
+def struct_term(msg, field, name):
+  child = gen_struct_name_from_field(field)
+  return "{child}._empty(r.{name})".format(child=child, name=name)
 
 default_values = {
   "bytes": {"op": "!= 0", "f": bytes_term},
   "string": {"op": "!= 0", "f": string_term},
   "int64": {"op": "!= 0", "f": simple_term},
   "uint64": {"op": "!= 0", "f": simple_term},
+  "struct": {"op": "!= true", "f": struct_term}
 }
 
 class IFBlock:
-  def __init__(self, field):
+  def __init__(self, msg, field):
+    self.msg = msg
     self.field = field
     self.val = Num2PbType.get(self.field.type, None)
 
@@ -501,18 +556,23 @@ class IFBlock:
     if self.val in default_values:
       dv = default_values[self.val]
       params = dict(
-        term=dv['f'](self.field.name),
-        field_name=self.field.name,
+        term=dv['f'](self.msg, self.field, self.field.name),
         op=dv['op'],
       )
       return "if ({term} {op}) ".format(**params) + "{"
     else:
-      pass
+      if is_struct_type(self.field):
+        dv = default_values["struct"]
+        params = dict(
+          term=dv['f'](self.msg, self.field, self.field.name),
+          op=dv['op'],
+        )
+        return "if ({term} {op}) ".format(**params) + "{"
 
     return ""
 
   def block_end(self):
-    if self.val in default_values:
+    if self.val in default_values or is_struct_type(self.field):
       return "}"
     else:
       return ""

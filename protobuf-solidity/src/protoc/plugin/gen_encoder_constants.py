@@ -143,6 +143,19 @@ ESTIMATOR = """
     return e;
   }}"""
 
+EMPTY_FIELD_NOT_REPEATED = """
+
+"""
+
+EMPTY_CHECKER = """
+  function _empty(
+    {struct} memory r
+  ) internal pure returns (bool) {{
+    {checkers}
+    return true;
+  }}
+"""
+
 ENCODER_SECTION = """
   // Encoder section
 {main_encoder}
@@ -151,4 +164,6 @@ ENCODER_SECTION = """
   // nested encoder
 {nested_encoder}
   // estimator
-{estimator}"""
+{estimator}
+  // empty checker
+{empty_checker}"""
