@@ -560,19 +560,22 @@ class IFBlock:
         op=dv['op'],
       )
       return "if ({term} {op}) ".format(**params) + "{"
-    else:
-      if is_struct_type(self.field):
-        dv = default_values["struct"]
-        params = dict(
-          term=dv['f'](self.msg, self.field, self.field.name),
-          op=dv['op'],
-        )
-        return "if ({term} {op}) ".format(**params) + "{"
+    # if type is struct, empty checker is disabled.
+    # empty struct is always encoded to bytes
+    # else:
+    #   if is_struct_type(self.field):
+    #     dv = default_values["struct"]
+    #     params = dict(
+    #       term=dv['f'](self.msg, self.field, self.field.name),
+    #       op=dv['op'],
+    #     )
+    #     return "if ({term} {op}) ".format(**params) + "{"
 
     return ""
 
   def block_end(self):
-    if self.val in default_values or is_struct_type(self.field):
+    #if self.val in default_values or is_struct_type(self.field):
+    if self.val in default_values:
       return "}"
     else:
       return ""
