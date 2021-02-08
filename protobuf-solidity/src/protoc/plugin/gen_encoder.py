@@ -141,15 +141,10 @@ def gen_estimator(msg, parent_struct_name, file):
     estimators = est
   )
 
-def gen_empty_field_checker(f, msg, file):
-  return util.gen_empty_checker_block(msg, f)
-
 def gen_empty_field_checkers(msg, parent_struct_name, file):
-  return ''.join(list(map((lambda f: gen_empty_field_checker(f, msg, file)), msg.field)))
+  return ''.join(list(map((lambda f: util.gen_empty_checker_block(msg, f)), msg.field)))
 
 def gen_empty_checker(msg, parent_struct_name, file):
-  # get a first field of struct
-  name = util.gen_struct_codec_lib_name_from_field(msg.field[0])
   return (encoder_constants.EMPTY_CHECKER).format(
     struct = util.gen_internal_struct_name(msg, parent_struct_name),
     checkers = gen_empty_field_checkers(msg, parent_struct_name, file)
