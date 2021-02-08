@@ -60,6 +60,7 @@ INNER_FIELD_ENCODER_NOT_REPEATED = """
     {block_end}"""
 
 INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
+    {block_start}
     pointer += ProtoBufRuntime._encode_key(
       {key},
       ProtoBufRuntime.WireType.{wiretype},
@@ -67,7 +68,8 @@ INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
       bs
     );
     int64 _enum_{field} = {library_name}encode_{enum_name}(r.{field});
-    pointer += {encoder}(_enum_{field}, pointer, bs);"""
+    pointer += {encoder}(_enum_{field}, pointer, bs);
+    {block_end}"""
 
 INNER_ENCODER = """
   /**

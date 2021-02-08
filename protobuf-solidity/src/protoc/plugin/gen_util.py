@@ -538,11 +538,15 @@ def struct_term(msg, field, name):
   child = gen_struct_name_from_field(field)
   return "{child}._empty(r.{name})".format(child=child, name=name)
 
+def enum_term(msg, field, name):
+  return "uint(r.{name})".format(name=name)
+
 default_values = {
   "bytes": {"op": "!= 0", "f": bytes_term},
   "string": {"op": "!= 0", "f": string_term},
   "int64": {"op": "!= 0", "f": simple_term},
   "uint64": {"op": "!= 0", "f": simple_term},
+  "enum": {"op": "!= 0", "f": enum_term},
   "struct": {"op": "!= true", "f": struct_term}
 }
 
