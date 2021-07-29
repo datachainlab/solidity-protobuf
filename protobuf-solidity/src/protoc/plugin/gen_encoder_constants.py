@@ -73,7 +73,7 @@ INNER_FIELD_ENCODER_NOT_REPEATED_ENUM = """
       pointer,
       bs
     );
-    int64 _enum_{field} = {library_name}encode_{enum_name}(r.{field});
+    int32 _enum_{field} = {library_name}encode_{enum_name}(r.{field});
     pointer += {encoder}(_enum_{field}, pointer, bs);
     {block_end}"""
 

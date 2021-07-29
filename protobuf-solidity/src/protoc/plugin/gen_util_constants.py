@@ -15,7 +15,7 @@ ENUM_FUNCTION = """
 
 ENUM_ENCODE_FUNCTION = """
   // Solidity enum encoder
-  function encode_{enum_name}({enum_name} x) internal pure returns (int64) {{
+  function encode_{enum_name}({enum_name} x) internal pure returns (int32) {{
     {enum_values}
     revert();
   }}
