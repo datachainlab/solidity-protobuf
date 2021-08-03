@@ -422,6 +422,31 @@ def gen_encoder_name(field):
       return "ProtoBufRuntime._encode_sol_" + val
     return gen_struct_codec_lib_name_from_field(field) + "._encode_nested"
 
+
+def gen_empty_checker_block(msg, field):
+  blk = EmptyCheckBlock(msg, field)
+  begin = blk.begin()
+  if begin == '':
+    return ''
+  return """
+  {block_begin}
+    return false;
+  {block_end}
+""".format(
+    block_begin=begin,
+    block_end=blk.end()
+  )
+
+def is_struct_type(field):
+  val = Num2PbType.get(field.type, None)
+  if val != None:
+    return False
+  else:
+    val = field_sol_type(field)
+    if val != None:
+      return False
+    return True
+
 def gen_wire_type(field):
   return Num2WireType.get(field.type, None)
 
@@ -475,3 +500,56 @@ def gen_visibility(is_decoder):
   if not LIBRARY_LINKING_MODE:
     return "internal"
   return "public" #"internal" if is_decoder else ""
+
+def simple_term(msg, field, name):
+  return "r.{name}".format(name=name)
+
+def string_term(msg, field, name):
+  return "bytes(r.{name}).length".format(name=name)
+
+def bytes_term(msg, field, name):
+  return "r.{name}.length".format(name=name)
+
+def message_term(msg, field, name):
+  child = gen_struct_name_from_field(field)
+  return "{child}._empty(r.{name})".format(child=child, name=name)
+
+def enum_term(msg, field, name):
+  return "uint(r.{name})".format(name=name)
+
+default_values = {
+  "bytes": {"cond": "!= 0", "f": bytes_term},
+  "string": {"cond": "!= 0", "f": string_term},
+  "int64": {"cond": "!= 0", "f": simple_term},
+  "uint64": {"cond": "!= 0", "f": simple_term},
+  "enum": {"cond": "!= 0", "f": enum_term},
+  "message": {"cond": "!= true", "f": message_term}
+}
+
+class EmptyCheckBlock:
+  def __init__(self, msg, field):
+    self.msg = msg
+    self.field = field
+    self.is_repeated = field_is_repeated(field)
+    self.val = Num2PbType.get(self.field.type, None)
+
+  def begin(self):
+    if self.is_repeated:
+      return "if ({term} != 0) {{".format(term="r." + self.field.name + ".length")
+    elif self.val in default_values:
+      dv = default_values[self.val]
+      params = dict(
+        term=dv['f'](self.msg, self.field, self.field.name),
+        op=dv['cond'],
+      )
+      return "if ({term} {op}) ".format(**params) + "{"
+    elif is_struct_type(self.field):
+      return ""
+    else:
+      raise Exception('Unsupported type: ' + self.field.type)
+
+  def end(self):
+    if is_struct_type(self.field) and not self.is_repeated:
+      return ""
+    else:
+      return "}"

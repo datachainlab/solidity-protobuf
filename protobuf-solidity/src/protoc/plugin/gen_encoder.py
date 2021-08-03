@@ -31,13 +31,17 @@ def gen_inner_field_encoder(f, msg, file):
   library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
   if library_name == ".":
     library_name = util.gen_global_enum_name(file) + library_name
+  ecblk = util.EmptyCheckBlock(msg, f)
   return template.format(
+    block_begin=ecblk.begin(),
     field = f.name,
+    num = util.Num2PbType.get(f.type, None),
     key = f.number,
     wiretype = util.gen_wire_type(f),
     encoder = util.gen_encoder_name(f),
     enum_name = type_name.split(".")[-1],
-    library_name = library_name
+    library_name = library_name,
+    block_end=ecblk.end(),
   )
 
 def gen_inner_field_encoders(msg, parent_struct_name, file):
@@ -137,10 +141,20 @@ def gen_estimator(msg, parent_struct_name, file):
     estimators = est
   )
 
+def gen_empty_field_checkers(msg, parent_struct_name, file):
+  return ''.join(list(map((lambda f: util.gen_empty_checker_block(msg, f)), msg.field)))
+
+def gen_empty_checker(msg, parent_struct_name, file):
+  return (encoder_constants.EMPTY_CHECKER).format(
+    struct = util.gen_internal_struct_name(msg, parent_struct_name),
+    checkers = gen_empty_field_checkers(msg, parent_struct_name, file)
+  )
+
 def gen_encoder_section(msg, parent_struct_name, file):
   return (encoder_constants.ENCODER_SECTION).format(
     main_encoder = gen_main_encoder(msg, parent_struct_name),
     inner_encoder = gen_inner_encoder(msg, parent_struct_name, file),
     nested_encoder = gen_nested_encoder(msg, parent_struct_name),
-    estimator = gen_estimator(msg, parent_struct_name, file)
+    estimator = gen_estimator(msg, parent_struct_name, file),
+    empty_checker = gen_empty_checker(msg, parent_struct_name, file)
   )
