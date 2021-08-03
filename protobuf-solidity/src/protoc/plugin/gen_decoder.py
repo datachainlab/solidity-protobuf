@@ -126,7 +126,7 @@ def gen_struct_decoder(f, msg, parent_struct_name):
   )
 
 def gen_struct_decoders(msg, parent_struct_name):
-  return ''.join(list(map(
+  return ''.join(set(map(
     (lambda f: gen_struct_decoder(f, msg, parent_struct_name) if util.field_is_message(f) else ""), msg.field)))
 
 
