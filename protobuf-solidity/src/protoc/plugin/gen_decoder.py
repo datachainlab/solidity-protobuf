@@ -126,8 +126,8 @@ def gen_struct_decoder(f, msg, parent_struct_name):
   )
 
 def gen_struct_decoders(msg, parent_struct_name):
-  return ''.join(list(map(
-    (lambda f: gen_struct_decoder(f, msg, parent_struct_name) if util.field_is_message(f) else ""), msg.field)))
+  decoders = list(map((lambda f: gen_struct_decoder(f, msg, parent_struct_name) if util.field_is_message(f) else ""), msg.field))
+  return ''.join(sorted(set(decoders), key=decoders.index))
 
 
 def gen_decoder_section(msg, parent_struct_name, file):
