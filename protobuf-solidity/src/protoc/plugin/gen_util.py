@@ -520,6 +520,7 @@ def enum_term(msg, field, name):
 default_values = {
   "bytes": {"cond": "!= 0", "f": bytes_term},
   "string": {"cond": "!= 0", "f": string_term},
+  "bool": {"cond": "!= false", "f": simple_term},
   "int64": {"cond": "!= 0", "f": simple_term},
   "uint64": {"cond": "!= 0", "f": simple_term},
   "enum": {"cond": "!= 0", "f": enum_term},
