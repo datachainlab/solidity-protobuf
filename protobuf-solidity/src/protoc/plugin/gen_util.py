@@ -521,9 +521,16 @@ default_values = {
   "bytes": {"cond": "!= 0", "f": bytes_term},
   "string": {"cond": "!= 0", "f": string_term},
   "bool": {"cond": "!= false", "f": simple_term},
+  "int32": {"cond": "!= 0", "f": simple_term},
   "int64": {"cond": "!= 0", "f": simple_term},
-  "sfixed64": {"cond": "!= 0", "f": simple_term},
+  "uint32": {"cond": "!= 0", "f": simple_term},
   "uint64": {"cond": "!= 0", "f": simple_term},
+  "sint32": {"cond": "!= 0", "f": simple_term},
+  "sint64": {"cond": "!= 0", "f": simple_term},
+  "fixed32": {"cond": "!= 0", "f": simple_term},
+  "fixed64": {"cond": "!= 0", "f": simple_term},
+  "sfixed32": {"cond": "!= 0", "f": simple_term},
+  "sfixed64": {"cond": "!= 0", "f": simple_term},
   "enum": {"cond": "!= 0", "f": enum_term},
   "message": {"cond": "!= true", "f": message_term}
 }
@@ -548,7 +555,7 @@ class EmptyCheckBlock:
     elif is_struct_type(self.field):
       return ""
     else:
-      raise Exception('Unsupported type: ' + self.field.type)
+      raise Exception('Unsupported type: {}', self.field.type)
 
   def end(self):
     if is_struct_type(self.field) and not self.is_repeated:
