@@ -522,6 +522,7 @@ default_values = {
   "string": {"cond": "!= 0", "f": string_term},
   "bool": {"cond": "!= false", "f": simple_term},
   "int64": {"cond": "!= 0", "f": simple_term},
+  "sfixed64": {"cond": "!= 0", "f": simple_term},
   "uint64": {"cond": "!= 0", "f": simple_term},
   "enum": {"cond": "!= 0", "f": enum_term},
   "message": {"cond": "!= true", "f": message_term}
