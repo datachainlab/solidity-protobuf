@@ -14,6 +14,7 @@ from gen_decoder import gen_decoder_section
 from gen_encoder import gen_encoder_section
 import gen_util as util
 import gen_sol_constants as sol_constants
+import sol_dirpath_pb2
 
 
 def gen_fields(msg: Descriptor) -> str:
@@ -223,7 +224,6 @@ def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
     enum_definition = gen_enum_definition(file),
   ))
 
-SOLIDITY_NATIVE_TYPEDEFS = "SolidityTypes.proto"
 RUNTIME_FILE_NAME = "ProtoBufRuntime.sol"
 PROTOBUF_ANY_FILE_NAME = "GoogleProtobufAny.sol"
 GEN_RUNTIME = False
@@ -253,6 +253,18 @@ def apply_options(params_string):
   if "solc_version" in params:
     util.set_solc_version(params["solc_version"])
 
+def gen_import_path(dependency: FileDescriptor) -> str:
+  # I don't know whether `os.path` module works well for import paths on Windows ...
+  import os
+  dirname = os.path.dirname(dependency.name)
+  basename = os.path.basename(dependency.name).replace('.proto', '.sol')
+  if sol_dirpath_pb2.sol_dirpath in dependency.GetOptions().Extensions:
+    dirname = dependency.GetOptions().Extensions[sol_dirpath_pb2.sol_dirpath]
+  if dirname == "":
+    return './{0}'.format(basename)
+  else:
+    return './{0}/{1}'.format(dirname, basename)
+
 def generate_code(request, response):
   pool = DescriptorPool()
   for f in request.proto_file:
@@ -267,7 +279,7 @@ def generate_code(request, response):
     if (proto_file.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
       continue
     # skip native solidity type definition
-    if SOLIDITY_NATIVE_TYPEDEFS in proto_file.name:
+    if proto_file.package == "solidity":
       continue
     # main output
     output = []
@@ -280,11 +292,11 @@ def generate_code(request, response):
     output.append('import "./{0}";'.format(RUNTIME_FILE_NAME))
     output.append('import "./{0}";'.format(PROTOBUF_ANY_FILE_NAME))
     for dep in proto_file.dependencies:
-      if SOLIDITY_NATIVE_TYPEDEFS in dep.name:
+      if dep.package == "solidity":
         continue
       if (dep.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
         continue
-      output.append('import "./{0}";'.format(dep.name.replace('.proto', '.sol')))
+      output.append('import "{0}";'.format(gen_import_path(dep)))
 
     # generate per message codes
     delegate_codecs = []
