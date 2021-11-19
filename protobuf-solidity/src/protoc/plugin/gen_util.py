@@ -1,15 +1,11 @@
-import re, sys
+import sys
 import pprint
 import gen_util_constants as util_constants
+from google.protobuf.descriptor import Descriptor, EnumDescriptor, EnumValueDescriptor, FieldDescriptor, FileDescriptor
 
 pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
 
 
-Label2Value = {
-  "LABEL_OPTIONAL": 1,
-  "LABEL_REQUIRED": 2,
-  "LABEL_REPEATED": 3,
-}
 
 Num2Type = {
   1: "double",
@@ -180,27 +176,23 @@ INTERNAL_TYPE_CATEGORY_BUILTIN = 1
 INTERNAL_TYPE_CATEGORY_ENUM = 2
 INTERNAL_TYPE_CATEGORY_USERTYPE = 3
 
-TYPE_MESSAGE = 11
 PB_LIB_NAME_PREFIX = ""
-PB_CURRENT_PACKAGE = ""
 LIBRARY_LINKING_MODE = False
 ENUM_AS_CONSTANT = False
 SOLIDITY_VERSION = "0.6.8"
 SOLIDITY_PRAGMAS = []
 
 # utils
-def is_map_type(f, nested_type):
-  if f.type_name.endswith("MapFieldEntry") and field_is_repeated(f):
-    return len(list(filter(lambda t: t.name == "MapFieldEntry" and t.options and t.options.map_entry ,nested_type))) > 0
-  return False
+def is_map_type(f: FieldDescriptor) -> bool:
+  return f.message_type and f.message_type.GetOptions().map_entry
+  #if f.message_type and f.message_type.name.endswith("MapFieldEntry") and field_is_repeated(f):
+  #  return len(list(filter(lambda t: t.name == "MapFieldEntry" and t.GetOptions().map_entry, nested_types))) > 0
+  #return False
 
-def to_camel_case(name):
+def to_camel_case(name: str) -> str:
   if "_" in name:
     return name.replace("_", " ").title().replace(" ", "")
   return name[:1].upper() + name[1:]
-
-def add_prefix(prefix, name, sep = ""):
-  return ("" if (prefix is None) else (prefix + sep)) + name
 
 def parse_urllike_parameter(s):
   ret = {} #hash
@@ -210,71 +202,69 @@ def parse_urllike_parameter(s):
       ret[kv[0]] = kv[1]
   return ret
 
+def field_is_message(f: FieldDescriptor) -> bool:
+  return f.message_type and (f.message_type.file.package != "solidity")
 
-def camel2snake(name):
-  s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-  return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+def field_is_repeated(f: FieldDescriptor) -> bool:
+  return f.label == FieldDescriptor.LABEL_REPEATED
 
-def field_is_message(f):
-  return f.type == TYPE_MESSAGE and (not f.type_name.startswith(".solidity."))
-
-def field_is_repeated(f):
-  return f.label == Label2Value["LABEL_REPEATED"]
-
-def field_has_dyn_size(f):
+def field_has_dyn_size(f: FieldDescriptor) -> bool:
   # if string or bytes, dynamic
-  if f.type == 9 or f.type == 12:
+  if f.type == FieldDescriptor.TYPE_STRING or f.type == FieldDescriptor.TYPE_BYTES:
     return True
-  elif f.type == TYPE_MESSAGE:
+  elif f.type == FieldDescriptor.TYPE_MESSAGE:
     # if non struct, message should be translate struct, which may have dynamic size
     # otherwise solidity native type, which should not have dynamic size
     return field_sol_type(f) == None
   else:
     return False
 
-def field_pb_type(f):
-  if f.type == TYPE_MESSAGE:
+def field_pb_type(f: FieldDescriptor) -> str:
+  if f.type == FieldDescriptor.TYPE_MESSAGE:
     return "message"
   return Num2PbType.get(f.type, None)
 
-def field_sol_type(f):
-  if f.type != TYPE_MESSAGE:
+def field_sol_type(f: FieldDescriptor) -> str:
+  if f.type != FieldDescriptor.TYPE_MESSAGE:
     return None
-  elif f.type_name.startswith(".solidity."):
-    return f.type_name.replace(".solidity.", "")
+  elif f.message_type.file.package == "solidity":
+    return f.message_type.name
   else:
     return None
 
-def prefix_lib_and_package(name):
-  return PB_LIB_NAME_PREFIX + PB_CURRENT_PACKAGE + name
-
-def prefix_lib(name):
+def prefix_lib(name: str) -> str:
   return PB_LIB_NAME_PREFIX + name
 
-def gen_delegate_lib_name(msg, parent_struct_name):
-  return prefix_lib_and_package(add_prefix(parent_struct_name, msg.name))
+def gen_delegate_lib_name(msg: Descriptor) -> str:
+  """Generate a library name as follows.
 
-def gen_global_type_name_from_field(field):
+  PackageNameContainingTypeNameSelfTypeName
+  """
+  name = "".join(map(lambda word: word[:1].upper() + word[1:], msg.full_name.split(".")))
+  return prefix_lib(name)
+
+def gen_global_type_name_from_field(field: FieldDescriptor) -> str:
   ftid, type_category = gen_field_type_id(field)
   if type_category == INTERNAL_TYPE_CATEGORY_BUILTIN:
     return ftid
   elif type_category == INTERNAL_TYPE_CATEGORY_ENUM:
     global ENUM_AS_CONSTANT
     return "int64" if ENUM_AS_CONSTANT else prefix_lib(ftid)
-  elif type_category == INTERNAL_TYPE_CATEGORY_USERTYPE:
+  else:
+    assert type_category == INTERNAL_TYPE_CATEGORY_USERTYPE
     return prefix_lib(ftid) + ".Data"
 
-def is_complex_type(field):
+def is_complex_type(field: str) -> bool:
   return "string" == field or "bytes" == field or ".Data" in field or "[]" in field
 
-def gen_global_type_decl_from_field(field):
+def gen_global_type_decl_from_field(field: FieldDescriptor) -> str:
   tp = gen_global_type_name_from_field(field)
   if field_has_dyn_size(field):
     return tp + " memory"
   else:
     return tp
 
-def gen_global_type_from_field(field):
+def gen_global_type_from_field(field: FieldDescriptor) -> str:
   t = gen_global_type_name_from_field(field)
   if t is None:
     pp.pprint(field)
@@ -284,12 +274,12 @@ def gen_global_type_from_field(field):
   else:
     return t
 
-def gen_internal_struct_name(msg, parent_struct_name):
+def gen_internal_struct_name(_: Descriptor) -> str:
   return "Data"
 
-def max_field_number(msg):
+def max_field_number(msg: Descriptor) -> int:
   num = 0
-  for f in msg.field:
+  for f in msg.fields:
     if num < f.number:
       num = f.number
   return num
@@ -300,14 +290,39 @@ def str_contains(s, token):
   except Exception as e:
     return False
 
-def gen_struct_name_from_field(f):
-  return "".join(map(lambda t: t[:1].upper() + t[1:], f.type_name[1:].split(".")))
+def gen_struct_name(msg: Descriptor) -> str:
+  """Generates PackageNameContainingTypeNameSelfTypeName"""
+  return "".join(map(lambda word: word[:1].upper() + word[1:], msg.full_name.split('.')))
+  #hierarchy = [msg.name]
+  #while msg.containing_type:
+  #  hierarchy.insert(0, msg.containing_type.name)
+  #  msg = msg.containing_type
+  #if len(msg.file.package) > 0:
+  #  for p in msg.file.package.split('.'):
+  #    camel = p[:1].upper() + p[1:]
+  #    hierarchy.insert(0, camel)
+  #return ''.join(hierarchy)
 
-def gen_enum_name_from_field(f):
-  seps = f.type_name.split('.')
-  return ('_'.join(seps[1:-1])) + "." + seps[-1]
+def gen_struct_name_from_field(f: FieldDescriptor) -> str:
+  assert f.message_type
+  return gen_struct_name(f.message_type)
 
-def gen_field_type_id(field):
+def gen_enum_name(e: EnumDescriptor) -> str:
+  """Generates the following.
+
+  - PackageNameContainingTypeName.EnumName if the enum is nested
+  - EnumName if the enum is global
+  """
+  if e.containing_type:
+    return gen_struct_name(e.containing_type) + '.' + e.name
+  else:
+    return gen_global_enum_name(e.file) + '.' + e.name
+
+def gen_enum_name_from_field(f: FieldDescriptor) -> str:
+  assert f.enum_type
+  return gen_enum_name(f.enum_type)
+
+def gen_field_type_id(field: FieldDescriptor) -> tuple[str, int]:
   val = Num2Type.get(field.type, None)
   if val != None:
     if val == "enum":
@@ -318,16 +333,15 @@ def gen_field_type_id(field):
     return (val, INTERNAL_TYPE_CATEGORY_BUILTIN)
   return (gen_struct_name_from_field(field), INTERNAL_TYPE_CATEGORY_USERTYPE)
 
-def gen_fieldtype(field, file):
+def gen_fieldtype(field: FieldDescriptor) -> str:
   t = gen_global_type_name_from_field(field)
-  if t[0] == ".":
-    t = gen_global_enum_name(file) + t
+  assert t[0] != "."
   if field_is_repeated(field):
     return t + "[]"
   else:
     return t
 
-def gen_enumvalue_entry(v):
+def gen_enumvalue_entry(v: tuple[int, EnumValueDescriptor]):
   if v[0] == 0:
     return "{name}".format(
       name = v[1].name,
@@ -337,36 +351,50 @@ def gen_enumvalue_entry(v):
       name = v[1].name,
     )
 
-def gen_enumencoder_entry(v, name):
+def gen_enumencoder_entry(v: EnumValueDescriptor) -> str:
   return util_constants.ENUM_ENCODE_FUNCTION_INNER.format(
     name = v.name,
     value = v.number,
-    enum_name = name
+    enum_name = v.type.name
   )
 
-def gen_enumdecoder_entry(v, name):
+def gen_enumdecoder_entry(v: EnumValueDescriptor) -> str:
   return util_constants.ENUM_DECODE_FUNCTION_INNER.format(
     name = v.name,
     value = v.number,
-    enum_name = name
+    enum_name = v.type.name
   )
 
-def gen_enumvalues(e):
+def gen_enumvalues(e: EnumDescriptor) -> str:
   return ''.join(
-    list(map(gen_enumvalue_entry, enumerate(e.value)))
+    list(map(gen_enumvalue_entry, enumerate(e.values)))
   )
 
-def gen_enum_encoders(e):
+def gen_enum_encoders(e: EnumDescriptor) -> str:
   return '\n'.join(
-    list(map(lambda t: gen_enumencoder_entry(t, e.name), e.value))
+    list(map(gen_enumencoder_entry, e.values))
   )
 
-def gen_enum_decoders(e):
+def gen_enum_decoders(e: EnumDescriptor) -> str:
   return '\n'.join(
-    list(map(lambda t: gen_enumdecoder_entry(t, e.name), e.value))
+    list(map(gen_enumdecoder_entry, e.values))
   )
 
-def gen_enumtype(e):
+def gen_enumtype(e: EnumDescriptor) -> str:
+  """Generate the following parts.
+
+  enum Foo {
+     ...
+  }
+
+  function encode_Foo(Foo x) internal pure returns (int32) {
+     ...
+  }
+
+  function decode_Foo(int64 x) internal pure returns (Foo) {
+     ...
+  }
+  """
   global ENUM_AS_CONSTANT
   if ENUM_AS_CONSTANT:
     return '\n'.join(
@@ -375,7 +403,7 @@ def gen_enumtype(e):
           name = v.name,
           value = v.number
         ),
-      e.value))
+      e.values))
     )
   else:
     definition = util_constants.ENUM_FUNCTION.format(
@@ -392,17 +420,16 @@ def gen_enumtype(e):
     )
     return definition + "\n" + encoder + "\n" + decoder
 
-def gen_struct_decoder_name_from_field(field):
+def gen_struct_decoder_name_from_field(field: FieldDescriptor) -> str:
   ftid, _ = gen_field_type_id(field)
   return "_decode_" + ftid
 
-def gen_struct_codec_lib_name_from_field(field):
+def gen_struct_codec_lib_name_from_field(field: FieldDescriptor) -> str:
   ftid, type_category = gen_field_type_id(field)
-  if type_category != INTERNAL_TYPE_CATEGORY_USERTYPE:
-    "___{} is not user type ({})___".format(field.name, ftid)
+  assert type_category == INTERNAL_TYPE_CATEGORY_USERTYPE
   return prefix_lib(ftid)
 
-def gen_decoder_name(field):
+def gen_decoder_name(field: FieldDescriptor) -> str:
   val = Num2PbType.get(field.type, None)
   if val != None:
     return "ProtoBufRuntime._decode_" + val
@@ -410,9 +437,9 @@ def gen_decoder_name(field):
     val = field_sol_type(field)
     if val != None:
       return "ProtoBufRuntime._decode_sol_" + val
-    return "_decode_" + "".join(map(lambda t: t[:1].upper() + t[1:], field.type_name.split(".")))
+    return "_decode_" + gen_struct_name_from_field(field)
 
-def gen_encoder_name(field):
+def gen_encoder_name(field: FieldDescriptor) -> str:
   val = Num2PbType.get(field.type, None)
   if val != None:
     return "ProtoBufRuntime._encode_" + val
@@ -423,7 +450,7 @@ def gen_encoder_name(field):
     return gen_struct_codec_lib_name_from_field(field) + "._encode_nested"
 
 
-def gen_empty_checker_block(msg, field):
+def gen_empty_checker_block(msg: Descriptor, field: FieldDescriptor) -> str:
   blk = EmptyCheckBlock(msg, field)
   begin = blk.begin()
   if begin == '':
@@ -437,7 +464,7 @@ def gen_empty_checker_block(msg, field):
     block_end=blk.end()
   )
 
-def is_struct_type(field):
+def is_struct_type(field: FieldDescriptor) -> bool:
   val = Num2PbType.get(field.type, None)
   if val != None:
     return False
@@ -447,32 +474,25 @@ def is_struct_type(field):
       return False
     return True
 
-def gen_wire_type(field):
+def gen_wire_type(field: FieldDescriptor) -> str:
   return Num2WireType.get(field.type, None)
 
-def gen_soltype_estimate_len(sol_type):
+def gen_soltype_estimate_len(sol_type: str) -> int:
   val = SolType2BodyLen.get(sol_type, 0)
   return val + 3
 
-def gen_global_enum_name(msg):
-  return msg.name.replace(".", "_").upper() + "_" + "GLOBAL_ENUMS"
+def gen_global_enum_name(file: FileDescriptor) -> str:
+  """Generate the name of a library containing global enums as follows.
 
-def change_pb_libname_prefix(new_name):
+  FILE_NAME_GLOBAL_ENUMS
+  """
+  return file.name.replace(".", "_").upper() + "_" + "GLOBAL_ENUMS"
+
+def change_pb_libname_prefix(new_name: str):
   global PB_LIB_NAME_PREFIX
   PB_LIB_NAME_PREFIX = new_name
 
-def change_package_name(new_name):
-  global PB_CURRENT_PACKAGE
-  if new_name:
-    PB_CURRENT_PACKAGE = "".join(map(lambda t: t[:1].upper() + t[1:], new_name.split(".")))
-  else:
-    PB_CURRENT_PACKAGE = ""
-
-def current_package_name():
-  global PB_CURRENT_PACKAGE
-  return PB_CURRENT_PACKAGE
-
-def is_lib_linking_mode():
+def is_lib_linking_mode() -> bool:
   global LIBRARY_LINKING_MODE
   return LIBRARY_LINKING_MODE
 
@@ -488,15 +508,15 @@ def set_internal_linking_mode():
   global SOLIDITY_PRAGMAS
   SOLIDITY_PRAGMAS = []
 
-def set_solc_version(version):
+def set_solc_version(version: str):
   global SOLIDITY_VERSION
   SOLIDITY_VERSION = version
 
-def set_enum_as_constant(on):
+def set_enum_as_constant(on: bool):
   global ENUM_AS_CONSTANT
   ENUM_AS_CONSTANT = on
 
-def gen_visibility(is_decoder):
+def gen_visibility(is_decoder) -> str:
   if not LIBRARY_LINKING_MODE:
     return "internal"
   return "public" #"internal" if is_decoder else ""
