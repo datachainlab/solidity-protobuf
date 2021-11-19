@@ -34,11 +34,10 @@ def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
     type_name = util.gen_enum_name_from_field(f)
     library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
     assert library_name != "."
-  ecblk = util.EmptyCheckBlock(msg, f)
+  ecblk = util.EmptyCheckBlock(f)
   return template.format(
     block_begin=ecblk.begin(),
     field = f.name,
-    num = util.Num2PbType.get(f.type, None),
     key = f.number,
     wiretype = util.gen_wire_type(f),
     encoder = util.gen_encoder_name(f),
