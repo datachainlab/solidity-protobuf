@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
-from typing import Union
+from typing import Union, List
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
@@ -171,7 +171,7 @@ def gen_array_helper_codes_for_field(f: FieldDescriptor) -> str:
     field_storage_type = "memory" if util.is_complex_type(field_type) else ""
   )
 
-def gen_map_helper(nested_type: Descriptor, parent_msg: Descriptor, all_map_fields: list[FieldDescriptor]) -> str:
+def gen_map_helper(nested_type: Descriptor, parent_msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
   if nested_type.GetOptions().map_entry:
     map_fields = list(filter(
       lambda f: f.message_type and f.message_type is nested_type,
@@ -181,14 +181,14 @@ def gen_map_helper(nested_type: Descriptor, parent_msg: Descriptor, all_map_fiel
   else:
     return ''
 
-def gen_map_helpers(msg: Descriptor, all_map_fields: list[FieldDescriptor]) -> str:
+def gen_map_helpers(msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
   return ''.join(list(map((lambda nt: gen_map_helper(nt, msg, all_map_fields)), msg.nested_types)))
 
-def gen_array_helpers(msg: Descriptor, all_map_fields: list[FieldDescriptor]) -> str:
+def gen_array_helpers(msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
   array_fields = filter(lambda t: util.field_is_repeated(t) and t not in all_map_fields, msg.fields)
   return ''.join(map(lambda f: gen_array_helper_codes_for_field(f), array_fields))
 
-def gen_codec(msg: Descriptor, delegate_codecs: list[str]):
+def gen_codec(msg: Descriptor, delegate_codecs: List[str]):
   delegate_lib_name = util.gen_delegate_lib_name(msg)
   all_map_fields = []
   # delegate codec
@@ -206,7 +206,7 @@ def gen_codec(msg: Descriptor, delegate_codecs: list[str]):
   for nested in msg.nested_types:
     gen_codec(nested, delegate_codecs)
 
-def gen_global_enum(file: FileDescriptor, delegate_codecs: list[str]):
+def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
   """Generates the following parts.
 
   library FILE_NAME_GLOBAL_ENUMS {

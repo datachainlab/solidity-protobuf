@@ -2,6 +2,7 @@ import sys
 import pprint
 import gen_util_constants as util_constants
 from google.protobuf.descriptor import Descriptor, EnumDescriptor, EnumValueDescriptor, FieldDescriptor, FileDescriptor
+from typing import Tuple
 
 pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
 
@@ -322,7 +323,7 @@ def gen_enum_name_from_field(f: FieldDescriptor) -> str:
   assert f.enum_type
   return gen_enum_name(f.enum_type)
 
-def gen_field_type_id(field: FieldDescriptor) -> tuple[str, int]:
+def gen_field_type_id(field: FieldDescriptor) -> Tuple[str, int]:
   val = Num2Type.get(field.type, None)
   if val != None:
     if val == "enum":
@@ -341,7 +342,7 @@ def gen_fieldtype(field: FieldDescriptor) -> str:
   else:
     return t
 
-def gen_enumvalue_entry(v: tuple[int, EnumValueDescriptor]):
+def gen_enumvalue_entry(v: Tuple[int, EnumValueDescriptor]):
   if v[0] == 0:
     return "{name}".format(
       name = v[1].name,

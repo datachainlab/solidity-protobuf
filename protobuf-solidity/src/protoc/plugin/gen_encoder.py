@@ -1,6 +1,7 @@
 import gen_util as util
 import gen_encoder_constants as encoder_constants
 from google.protobuf.descriptor import Descriptor, FieldDescriptor
+from typing import List
 
 def gen_main_encoder(msg: Descriptor) -> str:
   return (encoder_constants.MAIN_ENCODER).format(
@@ -8,7 +9,7 @@ def gen_main_encoder(msg: Descriptor) -> str:
     struct = util.gen_internal_struct_name(msg),
   )
 
-def has_repeated_field(fields: list[FieldDescriptor]) -> bool:
+def has_repeated_field(fields: List[FieldDescriptor]) -> bool:
   for f in fields:
     if util.field_is_repeated(f):
       return True
