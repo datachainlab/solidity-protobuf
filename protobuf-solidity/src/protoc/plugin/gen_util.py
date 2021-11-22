@@ -186,9 +186,6 @@ SOLIDITY_PRAGMAS = []
 # utils
 def is_map_type(f: FieldDescriptor) -> bool:
   return f.message_type and f.message_type.GetOptions().map_entry
-  #if f.message_type and f.message_type.name.endswith("MapFieldEntry") and field_is_repeated(f):
-  #  return len(list(filter(lambda t: t.name == "MapFieldEntry" and t.GetOptions().map_entry, nested_types))) > 0
-  #return False
 
 def to_camel_case(name: str) -> str:
   if "_" in name:
@@ -294,15 +291,6 @@ def str_contains(s, token):
 def gen_struct_name(msg: Descriptor) -> str:
   """Generates PackageNameContainingTypeNameSelfTypeName"""
   return "".join(map(lambda word: word[:1].upper() + word[1:], msg.full_name.split('.')))
-  #hierarchy = [msg.name]
-  #while msg.containing_type:
-  #  hierarchy.insert(0, msg.containing_type.name)
-  #  msg = msg.containing_type
-  #if len(msg.file.package) > 0:
-  #  for p in msg.file.package.split('.'):
-  #    camel = p[:1].upper() + p[1:]
-  #    hierarchy.insert(0, camel)
-  #return ''.join(hierarchy)
 
 def gen_struct_name_from_field(f: FieldDescriptor) -> str:
   assert f.message_type
