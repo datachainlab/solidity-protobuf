@@ -1,5 +1,5 @@
 const TestIntegerDeserialization = artifacts.require('TestIntegerDeserialization.sol');
-const { BN, constants, expectEvent, shouldFail, time } = require('openzeppelin-test-helpers');
+const { BN, constants, expectEvent, shouldFail, time } = require('@openzeppelin/test-helpers');
 const soltype = require(__dirname + "../../../solidity-js");
 const proto = soltype.importTypes(require(__dirname + '/../../js/test_integer_pb.js'));
 const assert = require('assert');

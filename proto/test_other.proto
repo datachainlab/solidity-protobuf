@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "SolidityTypes.proto";
 message TestOther {
   bool bool_field = 1;
   enum Corpus {

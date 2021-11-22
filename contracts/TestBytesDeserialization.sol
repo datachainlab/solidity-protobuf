@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity <0.9.0;
 
 import "./libs/test_bytes.sol";
 contract TestBytesDeserialization {
