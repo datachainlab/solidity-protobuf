@@ -46,7 +46,7 @@ def gen_struct_definition(msg: Descriptor) -> str:
   fields = gen_fields(msg)
   if (fields or map_fields):
     return (sol_constants.STRUCT_DEFINITION).format(
-      fields = gen_fields(msg),
+      fields = fields,
       map_fields = map_fields
     )
   else:
@@ -90,10 +90,7 @@ def gen_map_insert_on_store(f: FieldDescriptor, parent_msg: Descriptor) -> str:
   for nt in parent_msg.nested_types:
     if nt.GetOptions().map_entry:
       if f.message_type and f.message_type is nt:
-        return ('output._size_{name} = input._size_{name};\n').format(
-          name = f.name,
-          i = f.number
-        )
+        return ('output._size_{name} = input._size_{name};\n').format(name = f.name)
   return ''
 
 def gen_store_code_for_field(f: FieldDescriptor, msg: Descriptor) -> str:
