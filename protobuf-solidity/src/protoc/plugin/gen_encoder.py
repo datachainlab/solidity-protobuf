@@ -1,36 +1,39 @@
-import sys
 import gen_util as util
 import gen_encoder_constants as encoder_constants
-from google.protobuf.descriptor_pb2 import FieldDescriptorProto
+from google.protobuf.descriptor import Descriptor, FieldDescriptor
+from typing import List
 
-def gen_main_encoder(msg, parent_struct_name):
+def gen_main_encoder(msg: Descriptor) -> str:
   return (encoder_constants.MAIN_ENCODER).format(
     visibility = util.gen_visibility(False),
-    struct = util.gen_internal_struct_name(msg, parent_struct_name),
+    struct = util.gen_internal_struct_name(msg),
   )
 
-def has_repeated_field(fields):
+def has_repeated_field(fields: List[FieldDescriptor]) -> bool:
   for f in fields:
     if util.field_is_repeated(f):
       return True
   return False
 
-def gen_inner_field_encoder(f, msg, file):
-  type_name = util.gen_enum_name_from_field(f)
+def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
+  """Generates a code snippet that encodes a field (a part of _encode)"""
   if util.field_is_repeated(f):
-    if util.is_map_type(f, msg.nested_type):
+    if util.is_map_type(f):
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_MAP
-    elif f.type == FieldDescriptorProto.TYPE_ENUM :
+    elif f.type == FieldDescriptor.TYPE_ENUM:
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_ENUM
     else:
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED
-  elif f.type == FieldDescriptorProto.TYPE_ENUM :
+  elif f.type == FieldDescriptor.TYPE_ENUM:
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED_ENUM
   else:
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED
-  library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
-  if library_name == ".":
-    library_name = util.gen_global_enum_name(file) + library_name
+  type_name = ""
+  library_name = ""
+  if f.type == FieldDescriptor.TYPE_ENUM:
+    type_name = util.gen_enum_name_from_field(f)
+    library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+    assert library_name != "."
   ecblk = util.EmptyCheckBlock(msg, f)
   return template.format(
     block_begin=ecblk.begin(),
@@ -44,25 +47,31 @@ def gen_inner_field_encoder(f, msg, file):
     block_end=ecblk.end(),
   )
 
-def gen_inner_field_encoders(msg, parent_struct_name, file):
-  return ''.join(list(map((lambda f: gen_inner_field_encoder(f, msg, file)), msg.field)))
+def gen_inner_field_encoders(msg: Descriptor) -> str:
+  return ''.join(map((lambda f: gen_inner_field_encoder(f, msg)), msg.fields))
 
-def gen_inner_encoder(msg, parent_struct_name, file):
+def gen_inner_encoder(msg: Descriptor) -> str:
+  """Generates the following part.
+
+  function _encode(Data memory r, uint256 p, bytes memory bs) {
+      ...
+  }
+  """
   return (encoder_constants.INNER_ENCODER).format(
-    struct = util.gen_internal_struct_name(msg, parent_struct_name),
-    counter = "uint256 i;" if has_repeated_field(msg.field) else "",
-    encoders = gen_inner_field_encoders(msg, parent_struct_name, file)
+    struct = util.gen_internal_struct_name(msg),
+    counter = "uint256 i;" if has_repeated_field(msg.fields) else "",
+    encoders = gen_inner_field_encoders(msg)
   )
 
-def gen_nested_encoder(msg, parent_struct_name):
+def gen_nested_encoder(msg: Descriptor) -> str:
   return (encoder_constants.NESTED_ENCODER).format(
-    struct = util.gen_internal_struct_name(msg, parent_struct_name)
+    struct = util.gen_internal_struct_name(msg)
   )
 
 """
   Determine the estimated size given the field type
 """
-def gen_field_scalar_size(f, msg, file):
+def gen_field_scalar_size(f: FieldDescriptor, msg: Descriptor) -> str:
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
   fname = f.name + ("[i]" if util.field_is_repeated(f) else "")
@@ -72,8 +81,7 @@ def gen_field_scalar_size(f, msg, file):
     if vt == "enum":
       type_name = util.gen_enum_name_from_field(f)
       library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
-      if library_name == ".":
-        library_name = util.gen_global_enum_name(file) + library_name
+      assert library_name != "."
       return ("ProtoBufRuntime._sz_{valtype}({library_name}encode_{enum_name}(r.{field}))").format(
         valtype = vt,
         field = fname,
@@ -112,9 +120,9 @@ def gen_field_scalar_size(f, msg, file):
   else:
     return ("__does not support wire type {t}__").format(t = wt)
 
-def gen_field_estimator(f, msg, file):
+def gen_field_estimator(f: FieldDescriptor, msg: Descriptor) -> str:
   if util.field_is_repeated(f):
-    if util.is_map_type(f, msg.nested_type):
+    if util.is_map_type(f):
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED_MAP
     else:
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED
@@ -123,38 +131,38 @@ def gen_field_estimator(f, msg, file):
   return template.format(
     field = f.name,
     szKey = (1 if f.number < 16 else 2),
-    szItem = gen_field_scalar_size(f, msg, file)
+    szItem = gen_field_scalar_size(f, msg)
   )
 
-def gen_field_estimators(msg, parent_struct_name, file):
-  return ''.join(list(map((lambda f: gen_field_estimator(f, msg, file)), msg.field)))
+def gen_field_estimators(msg: Descriptor) -> str:
+  return ''.join(map((lambda f: gen_field_estimator(f, msg)), msg.fields))
 
-def gen_estimator(msg, parent_struct_name, file):
-  est = gen_field_estimators(msg, parent_struct_name, file)
+def gen_estimator(msg: Descriptor) -> str:
+  est = gen_field_estimators(msg)
   not_pure = util.str_contains(est, "r.")
   return (encoder_constants.ESTIMATOR).format(
-    struct = util.gen_internal_struct_name(msg, parent_struct_name),
+    struct = util.gen_internal_struct_name(msg),
     varname = "r" if not_pure else "/* r */",
     param = "\n   * @param r The struct to be encoded" if not_pure else "",
     mutability = "pure",
-    counter = "uint256 i;" if has_repeated_field(msg.field) else "",
+    counter = "uint256 i;" if has_repeated_field(msg.fields) else "",
     estimators = est
   )
 
-def gen_empty_field_checkers(msg, parent_struct_name, file):
-  return ''.join(list(map((lambda f: util.gen_empty_checker_block(msg, f)), msg.field)))
+def gen_empty_field_checkers(msg: Descriptor) -> str:
+  return ''.join(map((lambda f: util.gen_empty_checker_block(msg, f)), msg.fields))
 
-def gen_empty_checker(msg, parent_struct_name, file):
+def gen_empty_checker(msg: Descriptor) -> str:
   return (encoder_constants.EMPTY_CHECKER).format(
-    struct = util.gen_internal_struct_name(msg, parent_struct_name),
-    checkers = gen_empty_field_checkers(msg, parent_struct_name, file)
+    struct = util.gen_internal_struct_name(msg),
+    checkers = gen_empty_field_checkers(msg)
   )
 
-def gen_encoder_section(msg, parent_struct_name, file):
+def gen_encoder_section(msg: Descriptor) -> str:
   return (encoder_constants.ENCODER_SECTION).format(
-    main_encoder = gen_main_encoder(msg, parent_struct_name),
-    inner_encoder = gen_inner_encoder(msg, parent_struct_name, file),
-    nested_encoder = gen_nested_encoder(msg, parent_struct_name),
-    estimator = gen_estimator(msg, parent_struct_name, file),
-    empty_checker = gen_empty_checker(msg, parent_struct_name, file)
+    main_encoder = gen_main_encoder(msg),
+    inner_encoder = gen_inner_encoder(msg),
+    nested_encoder = gen_nested_encoder(msg),
+    estimator = gen_estimator(msg),
+    empty_checker = gen_empty_checker(msg)
   )

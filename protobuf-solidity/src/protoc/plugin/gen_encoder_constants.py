@@ -28,7 +28,7 @@ INNER_FIELD_ENCODER_REPEATED = """
 
 INNER_FIELD_ENCODER_REPEATED_ENUM = """
     {block_begin}
-    int64 _enum_{field};
+    int32 _enum_{field};
     for(i = 0; i < r.{field}.length; i++) {{
       pointer += ProtoBufRuntime._encode_key(
         {key},

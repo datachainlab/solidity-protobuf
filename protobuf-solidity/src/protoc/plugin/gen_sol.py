@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 import os, sys
+from typing import Union, List
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
 
 from google.protobuf.compiler import plugin_pb2 as plugin
-from google.protobuf.descriptor_pb2 import DescriptorProto, EnumDescriptorProto
+from google.protobuf.descriptor_pool import DescriptorPool
+from google.protobuf.descriptor import Descriptor, FieldDescriptor, FileDescriptor
 
 from gen_decoder import gen_decoder_section
 from gen_encoder import gen_encoder_section
@@ -14,46 +16,37 @@ import gen_util as util
 import gen_sol_constants as sol_constants
 
 
-def gen_fields(msg, file):
-  return '\n'.join(list(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f, file), name = f.name)), msg.field)))
+def gen_fields(msg: Descriptor) -> str:
+  return '\n'.join(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f), name = f.name)), msg.fields))
 
-
-def gen_map_fields_decl_for_field(f, nested_type):
+def gen_map_fields_decl_for_field(f: FieldDescriptor) -> str:
   return (sol_constants.MAP_FIELD_DEFINITION).format(
     name = f.name,
-    key_type = util.gen_global_type_name_from_field(nested_type.field[0]),
+    key_type = util.gen_global_type_name_from_field(f.message_type.fields[0]),
     container_type = util.gen_global_type_name_from_field(f)
   )
 
-def gen_nested_struct_name(nested_type, parent_msg, parent_struct_name):
-  flagments = [util.current_package_name(), parent_struct_name, parent_msg.name, nested_type.name] if parent_struct_name else [util.current_package_name(), parent_msg.name, nested_type.name]
-  pb_nested_struct_name = "".join(flagments)
-  return pb_nested_struct_name
-
-def gen_map_fields_helper(nested_type, parent_msg, parent_struct_name):
-  if nested_type.options and nested_type.options.map_entry:
-    pb_nested_struct_name = gen_nested_struct_name(nested_type, parent_msg, parent_struct_name)
-    map_fields = list(filter(
-      lambda f: util.gen_struct_name_from_field(f) == pb_nested_struct_name,
-      parent_msg.field))
-    return '\n'.join(list(map(lambda f: gen_map_fields_decl_for_field(f, nested_type), map_fields)))
-  else:
-    return ''
-
-def gen_map_fields(msg, parent_struct_name):
-  return '\n'.join(list(map((lambda nt: gen_map_fields_helper(nt, msg, parent_struct_name)), msg.nested_type)))
+def gen_map_fields(msg: Descriptor) -> str:
+  map_fields = list(filter(lambda f: f.message_type and f.message_type.GetOptions().map_entry, msg.fields))
+  return '\n'.join(map(gen_map_fields_decl_for_field, map_fields))
 
 # below gen_* codes for generating external library
-def gen_struct_definition(msg, parent_struct_name, file):
-  map_fields = gen_map_fields(msg, parent_struct_name)
+def gen_struct_definition(msg: Descriptor) -> str:
+  """Generates the following part.
+
+  struct Data {
+      ...
+  }
+  """
+  map_fields = gen_map_fields(msg)
   if map_fields.strip():
     map_fields = "\n    //non serialized fields" + map_fields
   else:
     map_fields = ""
-  fields = gen_fields(msg, file)
+  fields = gen_fields(msg)
   if (fields or map_fields):
     return (sol_constants.STRUCT_DEFINITION).format(
-      fields = gen_fields(msg, file),
+      fields = fields,
       map_fields = map_fields
     )
   else:
@@ -62,11 +55,23 @@ def gen_struct_definition(msg, parent_struct_name, file):
       map_fields = map_fields
     )
 
-def gen_enums(msg):
-  return '\n'.join(list(map(util.gen_enumtype, msg.enum_type)))
+def gen_enums(msg: Union[Descriptor, FileDescriptor]) -> str:
+  return '\n'.join(map(util.gen_enumtype, msg.enum_types_by_name.values()))
 
 # below gen_* codes for generating internal library
-def gen_enum_definition(msg, parent_struct_name):
+def gen_enum_definition(msg: Union[Descriptor, FileDescriptor]) -> str:
+  """Generates the following parts.
+
+  enum Foo { ... }
+  function encode_Foo(...) { ... }
+  function decode_Foo(...) { ... }
+
+  enum Bar { ... }
+  function encode_Bar(...) { ... }
+  function decode_Bar(...) { ... }
+
+  ...
+  """
   enums = gen_enums(msg)
   if enums.strip():
     return (sol_constants.ENUMS_DEFINITION).format(
@@ -76,23 +81,19 @@ def gen_enum_definition(msg, parent_struct_name):
     return ""
 
 # below gen_* codes for generating internal library
-def gen_utility_functions(msg, parent_struct_name):
+def gen_utility_functions(msg: Descriptor) -> str:
   return (sol_constants.UTILITY_FUNCTION).format(
-    name = util.gen_internal_struct_name(msg, parent_struct_name)
+    name = util.gen_internal_struct_name(msg)
   )
 
-def gen_map_insert_on_store(f, parent_msg, parent_struct_name):
-  for nt in parent_msg.nested_type:
-    if nt.options and nt.options.map_entry:
-      pb_nested_struct_name = gen_nested_struct_name(nt, parent_msg, parent_struct_name)
-      if util.gen_struct_name_from_field(f) == pb_nested_struct_name:
-        return ('output._size_{name} = input._size_{name};\n').format(
-          name = f.name,
-          i = f.number
-        )
+def gen_map_insert_on_store(f: FieldDescriptor, parent_msg: Descriptor) -> str:
+  for nt in parent_msg.nested_types:
+    if nt.GetOptions().map_entry:
+      if f.message_type and f.message_type is nt:
+        return ('output._size_{name} = input._size_{name};\n').format(name = f.name)
   return ''
 
-def gen_store_code_for_field(f, msg, parent_struct_name):
+def gen_store_code_for_field(f: FieldDescriptor, msg: Descriptor) -> str:
   tmpl = ""
   if util.field_is_message(f) and util.field_is_repeated(f):
     tmpl = sol_constants.STORE_REPEATED
@@ -109,16 +110,22 @@ def gen_store_code_for_field(f, msg, parent_struct_name):
     i = f.number,
     field = f.name,
     lib = libname,
-    map_insert_code = gen_map_insert_on_store(f, msg, parent_struct_name)
+    map_insert_code = gen_map_insert_on_store(f, msg)
   )
 
-def gen_store_codes(msg, parent_struct_name):
-  return ''.join(list(map((lambda f: gen_store_code_for_field(f, msg, parent_struct_name)), msg.field)))
+def gen_store_codes(msg: Descriptor) -> str:
+  return ''.join(map((lambda f: gen_store_code_for_field(f, msg)), msg.fields))
 
-def gen_store_function(msg, parent_struct_name):
+def gen_store_function(msg: Descriptor) -> str:
+  """Generates the following.
+
+  function store(Data memory input, Data storage output) internal {
+      ...
+  }
+  """
   return (sol_constants.STORE_FUNCTION).format(
-    name = util.gen_internal_struct_name(msg, parent_struct_name),
-    store_codes = gen_store_codes(msg, parent_struct_name)
+    name = util.gen_internal_struct_name(msg),
+    store_codes = gen_store_codes(msg)
   )
 
 def gen_value_copy_code(value_field, dst_flagment):
@@ -130,9 +137,9 @@ def gen_value_copy_code(value_field, dst_flagment):
   else:
     return ("{dst}.value = value;").format(dst = dst_flagment)
 
-def gen_map_helper_codes_for_field(f, nested_type):
-  kf = nested_type.field[0]
-  vf = nested_type.field[1]
+def gen_map_helper_codes_for_field(f: FieldDescriptor, nested_type: Descriptor) -> str:
+  kf = nested_type.fields[0]
+  vf = nested_type.fields[1]
   key_type = util.gen_global_type_name_from_field(kf)
   value_type = util.gen_global_type_name_from_field(vf)
   field_type = util.gen_global_type_name_from_field(f)
@@ -152,7 +159,7 @@ def gen_map_helper_codes_for_field(f, nested_type):
     container_type = util.gen_global_type_name_from_field(f)
   )
 
-def gen_array_helper_codes_for_field(f):
+def gen_array_helper_codes_for_field(f: FieldDescriptor) -> str:
   field_type = util.gen_global_type_name_from_field(f)
   return (sol_constants.ARRAY_HELPER_CODE).format(
     name = util.to_camel_case(f.name),
@@ -161,46 +168,59 @@ def gen_array_helper_codes_for_field(f):
     field_storage_type = "memory" if util.is_complex_type(field_type) else ""
   )
 
-def gen_map_helper(nested_type, parent_msg, parent_struct_name, all_map_fields):
-  if nested_type.options and nested_type.options.map_entry:
-    pb_nested_struct_name = gen_nested_struct_name(nested_type, parent_msg, parent_struct_name)
+def gen_map_helper(nested_type: Descriptor, parent_msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
+  if nested_type.GetOptions().map_entry:
     map_fields = list(filter(
-      lambda f: util.gen_struct_name_from_field(f) == pb_nested_struct_name,
-      parent_msg.field))
+      lambda f: f.message_type and f.message_type is nested_type,
+      parent_msg.fields))
     all_map_fields.extend(map_fields)
-    return ''.join(list(map(lambda f: gen_map_helper_codes_for_field(f, nested_type), map_fields)))
+    return ''.join(map(lambda f: gen_map_helper_codes_for_field(f, nested_type), map_fields))
   else:
     return ''
 
-def gen_map_helpers(msg, parent_struct_name, all_map_fields):
-  return ''.join(list(map((lambda nt: gen_map_helper(nt, msg, parent_struct_name, all_map_fields)), msg.nested_type)))
+def gen_map_helpers(msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
+  return ''.join(map((lambda nt: gen_map_helper(nt, msg, all_map_fields)), msg.nested_types))
 
-def gen_array_helpers(msg, parent_struct_name, all_map_fields):
-  array_fields = filter(lambda t: util.field_is_repeated(t) and t not in all_map_fields, msg.field)
-  return ''.join(map(lambda f: gen_array_helper_codes_for_field(f),array_fields))
+def gen_array_helpers(msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
+  array_fields = filter(lambda t: util.field_is_repeated(t) and t not in all_map_fields, msg.fields)
+  return ''.join(map(lambda f: gen_array_helper_codes_for_field(f), array_fields))
 
-def gen_codec(msg, main_codecs, delegate_codecs, parent_struct_name = None, file = None):
-  delegate_lib_name = util.gen_delegate_lib_name(msg, parent_struct_name)
+def gen_codec(msg: Descriptor, delegate_codecs: List[str]):
+  delegate_lib_name = util.gen_delegate_lib_name(msg)
   all_map_fields = []
   # delegate codec
   delegate_codecs.append(sol_constants.CODECS.format(
     delegate_lib_name = delegate_lib_name,
-    enum_definition = gen_enum_definition(msg, parent_struct_name),
-    struct_definition = gen_struct_definition(msg, parent_struct_name, file),
-    decoder_section = gen_decoder_section(msg, parent_struct_name, file),
-    encoder_section = gen_encoder_section(msg, parent_struct_name, file),
-    store_function = gen_store_function(msg, parent_struct_name),
-    map_helper = gen_map_helpers(msg, parent_struct_name, all_map_fields),
-    array_helper = gen_array_helpers(msg, parent_struct_name, all_map_fields),
-    utility_functions = gen_utility_functions(msg, parent_struct_name)
+    enum_definition = gen_enum_definition(msg),
+    struct_definition = gen_struct_definition(msg),
+    decoder_section = gen_decoder_section(msg),
+    encoder_section = gen_encoder_section(msg),
+    store_function = gen_store_function(msg),
+    map_helper = gen_map_helpers(msg, all_map_fields),
+    array_helper = gen_array_helpers(msg, all_map_fields),
+    utility_functions = gen_utility_functions(msg)
   ))
-  for nested in msg.nested_type:
-    gen_codec(nested, main_codecs, delegate_codecs, util.add_prefix(parent_struct_name, msg.name), file)
+  for nested in msg.nested_types:
+    gen_codec(nested, delegate_codecs)
 
-def gen_global_enum(msg, main_codecs, delegate_codecs, parent_struct_name = None):
+def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
+  """Generates the following parts.
+
+  library FILE_NAME_GLOBAL_ENUMS {
+      enum Foo { ... }
+      function encode_Foo(...) { ... }
+      function decode_Foo(...) { ... }
+
+      enum Bar { ... }
+      function encode_Bar(...) { ... }
+      function decode_Bar(...) { ... }
+
+      ...
+  }
+  """
   delegate_codecs.append(sol_constants.GLOBAL_ENUM_CODECS.format(
-    delegate_lib_name = util.gen_global_enum_name(msg),
-    enum_definition = gen_enum_definition(msg, parent_struct_name),
+    delegate_lib_name = util.gen_global_enum_name(file),
+    enum_definition = gen_enum_definition(file),
   ))
 
 SOLIDITY_NATIVE_TYPEDEFS = "SolidityTypes.proto"
@@ -234,11 +254,15 @@ def apply_options(params_string):
     util.set_solc_version(params["solc_version"])
 
 def generate_code(request, response):
+  pool = DescriptorPool()
+  for f in request.proto_file:
+    pool.Add(f)
+
   generated = 0
 
   apply_options(request.parameter)
 
-  for proto_file in request.proto_file:
+  for proto_file in map(lambda f: pool.FindFileByName(f.name), request.proto_file):
     # skip google.protobuf namespace
     if (proto_file.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
       continue
@@ -248,9 +272,6 @@ def generate_code(request, response):
     # main output
     output = []
 
-    # set package name if any
-    util.change_package_name(proto_file.package)
-
     # generate sol library
     # prologue
     output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
@@ -258,20 +279,19 @@ def generate_code(request, response):
       output.append('{0};'.format(pragma))
     output.append('import "./{0}";'.format(RUNTIME_FILE_NAME))
     output.append('import "./{0}";'.format(PROTOBUF_ANY_FILE_NAME))
-    for dep in proto_file.dependency:
-      if SOLIDITY_NATIVE_TYPEDEFS in dep:
+    for dep in proto_file.dependencies:
+      if SOLIDITY_NATIVE_TYPEDEFS in dep.name:
         continue
-      if ("google/protobuf" in dep) and (not COMPILE_META_SCHEMA):
+      if (dep.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
         continue
-      output.append('import "./{0}";'.format(dep.replace('.proto', '.sol')))
+      output.append('import "./{0}";'.format(dep.name.replace('.proto', '.sol')))
 
     # generate per message codes
-    main_codecs = []
     delegate_codecs = []
-    for msg in proto_file.message_type:
-      gen_codec(msg, main_codecs, delegate_codecs, None, proto_file)
-    if proto_file.enum_type:
-      gen_global_enum(proto_file, main_codecs, delegate_codecs, None)
+    for msg in proto_file.message_types_by_name.values():
+      gen_codec(msg, delegate_codecs)
+    if len(proto_file.enum_types_by_name):
+      gen_global_enum(proto_file, delegate_codecs)
 
     # epilogue
     output = output + delegate_codecs

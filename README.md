@@ -46,7 +46,7 @@ The data, which is of type bytes, contains the minimum number of bytes needed to
 
 To install ProtoSolGenerator, first install [protobuf compiler](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation).
 
-Then install python requirements.
+Then install python requirements. Python >= 3.5 is required.
 
 ```pip install -r requirements.txt```
 
