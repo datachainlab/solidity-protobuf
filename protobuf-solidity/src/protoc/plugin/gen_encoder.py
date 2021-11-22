@@ -48,7 +48,7 @@ def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
   )
 
 def gen_inner_field_encoders(msg: Descriptor) -> str:
-  return ''.join(list(map((lambda f: gen_inner_field_encoder(f, msg)), msg.fields)))
+  return ''.join(map((lambda f: gen_inner_field_encoder(f, msg)), msg.fields))
 
 def gen_inner_encoder(msg: Descriptor) -> str:
   """Generates the following part.
@@ -135,7 +135,7 @@ def gen_field_estimator(f: FieldDescriptor, msg: Descriptor) -> str:
   )
 
 def gen_field_estimators(msg: Descriptor) -> str:
-  return ''.join(list(map((lambda f: gen_field_estimator(f, msg)), msg.fields)))
+  return ''.join(map((lambda f: gen_field_estimator(f, msg)), msg.fields))
 
 def gen_estimator(msg: Descriptor) -> str:
   est = gen_field_estimators(msg)
@@ -150,7 +150,7 @@ def gen_estimator(msg: Descriptor) -> str:
   )
 
 def gen_empty_field_checkers(msg: Descriptor) -> str:
-  return ''.join(list(map((lambda f: util.gen_empty_checker_block(msg, f)), msg.fields)))
+  return ''.join(map((lambda f: util.gen_empty_checker_block(msg, f)), msg.fields))
 
 def gen_empty_checker(msg: Descriptor) -> str:
   return (encoder_constants.EMPTY_CHECKER).format(

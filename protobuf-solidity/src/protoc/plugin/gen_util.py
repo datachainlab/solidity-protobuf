@@ -356,17 +356,17 @@ def gen_enumdecoder_entry(v: EnumValueDescriptor) -> str:
 
 def gen_enumvalues(e: EnumDescriptor) -> str:
   return ''.join(
-    list(map(gen_enumvalue_entry, enumerate(e.values)))
+    map(gen_enumvalue_entry, enumerate(e.values))
   )
 
 def gen_enum_encoders(e: EnumDescriptor) -> str:
   return '\n'.join(
-    list(map(gen_enumencoder_entry, e.values))
+    map(gen_enumencoder_entry, e.values)
   )
 
 def gen_enum_decoders(e: EnumDescriptor) -> str:
   return '\n'.join(
-    list(map(gen_enumdecoder_entry, e.values))
+    map(gen_enumdecoder_entry, e.values)
   )
 
 def gen_enumtype(e: EnumDescriptor) -> str:
@@ -387,12 +387,12 @@ def gen_enumtype(e: EnumDescriptor) -> str:
   global ENUM_AS_CONSTANT
   if ENUM_AS_CONSTANT:
     return '\n'.join(
-      list(map(lambda v: util_constants.ENUM_TYPE.format(
+      map(lambda v: util_constants.ENUM_TYPE.format(
           type = e.name,
           name = v.name,
           value = v.number
         ),
-      e.values))
+      e.values)
     )
   else:
     definition = util_constants.ENUM_FUNCTION.format(

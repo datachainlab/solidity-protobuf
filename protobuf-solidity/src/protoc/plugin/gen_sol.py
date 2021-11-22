@@ -17,7 +17,7 @@ import gen_sol_constants as sol_constants
 
 
 def gen_fields(msg: Descriptor) -> str:
-  return '\n'.join(list(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f), name = f.name)), msg.fields)))
+  return '\n'.join(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f), name = f.name)), msg.fields))
 
 def gen_map_fields_decl_for_field(f: FieldDescriptor) -> str:
   return (sol_constants.MAP_FIELD_DEFINITION).format(
@@ -28,7 +28,7 @@ def gen_map_fields_decl_for_field(f: FieldDescriptor) -> str:
 
 def gen_map_fields(msg: Descriptor) -> str:
   map_fields = list(filter(lambda f: f.message_type and f.message_type.GetOptions().map_entry, msg.fields))
-  return '\n'.join(list(map(gen_map_fields_decl_for_field, map_fields)))
+  return '\n'.join(map(gen_map_fields_decl_for_field, map_fields))
 
 # below gen_* codes for generating external library
 def gen_struct_definition(msg: Descriptor) -> str:
@@ -56,7 +56,7 @@ def gen_struct_definition(msg: Descriptor) -> str:
     )
 
 def gen_enums(msg: Union[Descriptor, FileDescriptor]) -> str:
-  return '\n'.join(list(map(util.gen_enumtype, msg.enum_types_by_name.values())))
+  return '\n'.join(map(util.gen_enumtype, msg.enum_types_by_name.values()))
 
 # below gen_* codes for generating internal library
 def gen_enum_definition(msg: Union[Descriptor, FileDescriptor]) -> str:
@@ -114,7 +114,7 @@ def gen_store_code_for_field(f: FieldDescriptor, msg: Descriptor) -> str:
   )
 
 def gen_store_codes(msg: Descriptor) -> str:
-  return ''.join(list(map((lambda f: gen_store_code_for_field(f, msg)), msg.fields)))
+  return ''.join(map((lambda f: gen_store_code_for_field(f, msg)), msg.fields))
 
 def gen_store_function(msg: Descriptor) -> str:
   """Generates the following.
@@ -174,12 +174,12 @@ def gen_map_helper(nested_type: Descriptor, parent_msg: Descriptor, all_map_fiel
       lambda f: f.message_type and f.message_type is nested_type,
       parent_msg.fields))
     all_map_fields.extend(map_fields)
-    return ''.join(list(map(lambda f: gen_map_helper_codes_for_field(f, nested_type), map_fields)))
+    return ''.join(map(lambda f: gen_map_helper_codes_for_field(f, nested_type), map_fields))
   else:
     return ''
 
 def gen_map_helpers(msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
-  return ''.join(list(map((lambda nt: gen_map_helper(nt, msg, all_map_fields)), msg.nested_types)))
+  return ''.join(map((lambda nt: gen_map_helper(nt, msg, all_map_fields)), msg.nested_types))
 
 def gen_array_helpers(msg: Descriptor, all_map_fields: List[FieldDescriptor]) -> str:
   array_fields = filter(lambda t: util.field_is_repeated(t) and t not in all_map_fields, msg.fields)

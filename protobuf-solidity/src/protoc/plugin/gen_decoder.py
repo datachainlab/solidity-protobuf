@@ -116,7 +116,7 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
 
 
 def gen_field_readers(msg: Descriptor) -> str:
-  return ''.join(list(map(lambda f: gen_field_reader(f, msg), msg.fields)))
+  return ''.join(map(lambda f: gen_field_reader(f, msg), msg.fields))
 
 def gen_struct_decoder(f: FieldDescriptor) -> str:
   """Generates the following parts.
