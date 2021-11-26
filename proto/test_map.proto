@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "SolidityTypes.proto";
 message TestMap {
   map<string, string> map_field = 1;
 }

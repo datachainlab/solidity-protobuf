@@ -440,7 +440,7 @@ def gen_encoder_name(field: FieldDescriptor) -> str:
 
 
 def gen_empty_checker_block(msg: Descriptor, field: FieldDescriptor) -> str:
-  blk = EmptyCheckBlock(msg, field)
+  blk = EmptyCheckBlock(field)
   begin = blk.begin()
   if begin == '':
     return ''
@@ -458,9 +458,6 @@ def is_struct_type(field: FieldDescriptor) -> bool:
   if val != None:
     return False
   else:
-    val = field_sol_type(field)
-    if val != None:
-      return False
     return True
 
 def gen_wire_type(field: FieldDescriptor) -> str:
@@ -510,21 +507,21 @@ def gen_visibility(is_decoder) -> str:
     return "internal"
   return "public" #"internal" if is_decoder else ""
 
-def simple_term(msg, field, name):
-  return "r.{name}".format(name=name)
+def simple_term(field: FieldDescriptor) -> str:
+  return "r.{name}".format(name=field.name)
 
-def string_term(msg, field, name):
-  return "bytes(r.{name}).length".format(name=name)
+def string_term(field: FieldDescriptor) -> str:
+  return "bytes(r.{name}).length".format(name=field.name)
 
-def bytes_term(msg, field, name):
-  return "r.{name}.length".format(name=name)
+def bytes_term(field: FieldDescriptor) -> str:
+  return "r.{name}.length".format(name=field.name)
 
-def message_term(msg, field, name):
+def message_term(field: FieldDescriptor) -> str:
   child = gen_struct_name_from_field(field)
-  return "{child}._empty(r.{name})".format(child=child, name=name)
+  return "{child}._empty(r.{name})".format(child=child, name=field.name)
 
-def enum_term(msg, field, name):
-  return "uint(r.{name})".format(name=name)
+def enum_term(field: FieldDescriptor) -> str:
+  return "uint(r.{name})".format(name=field.name)
 
 default_values = {
   "bytes": {"cond": "!= 0", "f": bytes_term},
@@ -545,19 +542,17 @@ default_values = {
 }
 
 class EmptyCheckBlock:
-  def __init__(self, msg, field):
-    self.msg = msg
+  def __init__(self, field: FieldDescriptor):
     self.field = field
-    self.is_repeated = field_is_repeated(field)
     self.val = Num2PbType.get(self.field.type, None)
 
   def begin(self):
-    if self.is_repeated:
+    if field_is_repeated(self.field):
       return "if ({term} != 0) {{".format(term="r." + self.field.name + ".length")
     elif self.val in default_values:
       dv = default_values[self.val]
       params = dict(
-        term=dv['f'](self.msg, self.field, self.field.name),
+        term=dv['f'](self.field),
         op=dv['cond'],
       )
       return "if ({term} {op}) ".format(**params) + "{"
@@ -567,7 +562,7 @@ class EmptyCheckBlock:
       raise Exception('Unsupported type: {}', self.field.type)
 
   def end(self):
-    if is_struct_type(self.field) and not self.is_repeated:
+    if is_struct_type(self.field) and not field_is_repeated(self.field):
       return ""
     else:
       return "}"
