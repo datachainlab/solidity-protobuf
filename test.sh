@@ -8,6 +8,8 @@ do
   fi
 done
 
-npx --no-install truffle compile
+container_id=$(docker run --rm -d -p 7545:8545 trufflesuite/ganache-cli)
+trap "docker stop $container_id" EXIT
+while ! (wget -q -O - localhost:7545 || [ $? -eq 8 ]); do sleep 1; done
 
 npx --no-install truffle test
