@@ -182,6 +182,7 @@ LIBRARY_LINKING_MODE = False
 ENUM_AS_CONSTANT = False
 SOLIDITY_VERSION = "0.8.10"
 SOLIDITY_PRAGMAS = []
+IGNORED_PROTOS = []
 
 # utils
 def is_map_type(f: FieldDescriptor) -> bool:
@@ -501,6 +502,14 @@ def set_solc_version(version: str):
 def set_enum_as_constant(on: bool):
   global ENUM_AS_CONSTANT
   ENUM_AS_CONSTANT = on
+
+def set_ignored_protos(opt: str):
+  global IGNORED_PROTOS
+  IGNORED_PROTOS = opt.split(',')
+
+def ignores_proto(name: str) -> bool:
+  global IGNORED_PROTOS
+  return (name in IGNORED_PROTOS)
 
 def gen_visibility(is_decoder) -> str:
   if not LIBRARY_LINKING_MODE:

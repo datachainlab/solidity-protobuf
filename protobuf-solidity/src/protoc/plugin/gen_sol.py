@@ -237,6 +237,8 @@ def apply_options(params_string):
   if "use_runtime" in params:
     GEN_RUNTIME = False
     change_runtime_file_names(params["use_runtime"])
+  if "ignore_protos" in params:
+    util.set_ignored_protos(params["ignore_protos"])
   if "pb_libname" in params:
     util.change_pb_libname_prefix(params["pb_libname"])
   if "for_linking" in params:
@@ -290,6 +292,9 @@ def generate_code(request, response):
     # skip native solidity type definition
     if proto_file.package == "solidity":
       continue
+    # skip descriptors listed by ignored_protos
+    if util.ignores_proto(proto_file.name):
+      continue
     # main output
     output = []
 
@@ -304,6 +309,8 @@ def generate_code(request, response):
       if dep.package == "solidity":
         continue
       if (dep.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
+        continue
+      if util.ignores_proto(dep.name):
         continue
       output.append('import "{0}";'.format(gen_output_path(dep)))
 
