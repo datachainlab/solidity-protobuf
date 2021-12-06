@@ -229,19 +229,14 @@ PROTOBUF_ANY_FILE_NAME = "GoogleProtobufAny.sol"
 GEN_RUNTIME = False
 COMPILE_META_SCHEMA = False
 def apply_options(params_string):
+  global GEN_RUNTIME
   params = util.parse_urllike_parameter(params_string)
   if "gen_runtime" in params:
-    global GEN_RUNTIME
     GEN_RUNTIME = True
-    name = params["gen_runtime"]
-    if name.endswith(".sol"):
-      global RUNTIME_FILE_NAME
-      RUNTIME_FILE_NAME = name
-    dirname = os.path.dirname(RUNTIME_FILE_NAME)
-    if dirname:
-      # GoogleProtobufAny.sol and ProtoBufRuntime.sol must be put together in the same directory
-      global PROTOBUF_ANY_FILE_NAME
-      PROTOBUF_ANY_FILE_NAME = "{0}/{1}".format(dirname, PROTOBUF_ANY_FILE_NAME)
+    change_runtime_file_names(params["gen_runtime"])
+  if "use_runtime" in params:
+    GEN_RUNTIME = False
+    change_runtime_file_names(params["use_runtime"])
   if "pb_libname" in params:
     util.change_pb_libname_prefix(params["pb_libname"])
   if "for_linking" in params:
@@ -257,6 +252,15 @@ def apply_options(params_string):
     COMPILE_META_SCHEMA = True
   if "solc_version" in params:
     util.set_solc_version(params["solc_version"])
+
+def change_runtime_file_names(name: str):
+  if name.endswith(".sol"):
+    global RUNTIME_FILE_NAME, PROTOBUF_ANY_FILE_NAME
+    RUNTIME_FILE_NAME = name
+    dirname = os.path.dirname(RUNTIME_FILE_NAME)
+    if dirname:
+      # GoogleProtobufAny.sol and ProtoBufRuntime.sol must be put together in the same directory
+      PROTOBUF_ANY_FILE_NAME = "{0}/{1}".format(dirname, PROTOBUF_ANY_FILE_NAME)
 
 def gen_output_path(dependency: FileDescriptor) -> str:
   dirname = os.path.dirname(dependency.name)
