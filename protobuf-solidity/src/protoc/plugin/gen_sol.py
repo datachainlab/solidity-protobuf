@@ -237,6 +237,11 @@ def apply_options(params_string):
     if name.endswith(".sol"):
       global RUNTIME_FILE_NAME
       RUNTIME_FILE_NAME = name
+    dirname = os.path.dirname(RUNTIME_FILE_NAME)
+    if dirname:
+      # GoogleProtobufAny.sol and ProtoBufRuntime.sol must be put together in the same directory
+      global PROTOBUF_ANY_FILE_NAME
+      PROTOBUF_ANY_FILE_NAME = "{0}/{1}".format(dirname, PROTOBUF_ANY_FILE_NAME)
   if "pb_libname" in params:
     util.change_pb_libname_prefix(params["pb_libname"])
   if "for_linking" in params:
@@ -289,8 +294,8 @@ def generate_code(request, response):
     output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
     for pragma in util.SOLIDITY_PRAGMAS:
       output.append('{0};'.format(pragma))
-    output.append('import "./{0}";'.format(RUNTIME_FILE_NAME))
-    output.append('import "./{0}";'.format(PROTOBUF_ANY_FILE_NAME))
+    output.append('import "{0}";'.format(RUNTIME_FILE_NAME))
+    output.append('import "{0}";'.format(PROTOBUF_ANY_FILE_NAME))
     for dep in proto_file.dependencies:
       if dep.package == "solidity":
         continue
