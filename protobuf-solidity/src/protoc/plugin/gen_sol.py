@@ -14,7 +14,7 @@ from gen_decoder import gen_decoder_section
 from gen_encoder import gen_encoder_section
 import gen_util as util
 import gen_sol_constants as sol_constants
-import sol_dirpath_pb2
+import solidity_protobuf_extensions_pb2 as solpbext
 
 
 def gen_fields(msg: Descriptor) -> str:
@@ -253,17 +253,17 @@ def apply_options(params_string):
   if "solc_version" in params:
     util.set_solc_version(params["solc_version"])
 
-def gen_import_path(dependency: FileDescriptor) -> str:
-  # I don't know whether `os.path` module works well for import paths on Windows ...
-  import os
+def gen_output_path(dependency: FileDescriptor) -> str:
   dirname = os.path.dirname(dependency.name)
   basename = os.path.basename(dependency.name).replace('.proto', '.sol')
-  if sol_dirpath_pb2.sol_dirpath in dependency.GetOptions().Extensions:
-    dirname = dependency.GetOptions().Extensions[sol_dirpath_pb2.sol_dirpath]
-  if dirname == "":
-    return './{0}'.format(basename)
+  if dependency.GetOptions().HasExtension(solpbext.file_options):
+    opts = dependency.GetOptions().Extensions[solpbext.file_options]
+    if opts.dirpath:
+      dirname = opts.dirpath
+  if dirname:
+    return '{0}/{1}'.format(dirname, basename)
   else:
-    return './{0}/{1}'.format(dirname, basename)
+    return '{0}'.format(basename)
 
 def generate_code(request, response):
   pool = DescriptorPool()
@@ -296,7 +296,7 @@ def generate_code(request, response):
         continue
       if (dep.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
         continue
-      output.append('import "{0}";'.format(gen_import_path(dep)))
+      output.append('import "{0}";'.format(gen_output_path(dep)))
 
     # generate per message codes
     delegate_codecs = []
@@ -311,9 +311,8 @@ def generate_code(request, response):
 
     if len(delegate_codecs) > 0: # if it has any contents, output pb.sol file
       # Fill response
-      basepath = os.path.basename(proto_file.name)
       f = response.file.add()
-      f.name = basepath.replace('.proto', '.sol')
+      f.name = gen_output_path(proto_file)
       f.content = '\n'.join(output)
       # increase generated file count
       generated = generated + 1

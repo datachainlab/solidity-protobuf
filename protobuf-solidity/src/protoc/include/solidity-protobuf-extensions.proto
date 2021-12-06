@@ -3,6 +3,10 @@ syntax = "proto3";
 package solidity;
 
 import "google/protobuf/descriptor.proto";
+
+message FileOptions {
+  optional string dirpath = 1;
+}
 extend google.protobuf.FileOptions {
-  optional string sol_dirpath = 50000;
+  optional FileOptions file_options = 50000;
 }
