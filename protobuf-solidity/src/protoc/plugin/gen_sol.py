@@ -231,6 +231,8 @@ COMPILE_META_SCHEMA = False
 def apply_options(params_string):
   global GEN_RUNTIME
   params = util.parse_urllike_parameter(params_string)
+  if 'gen_runtime' in params and 'use_runtime' in params:
+    raise ValueError('"gen_runtime" and "use_runtime" cannot be used together')
   if "gen_runtime" in params:
     GEN_RUNTIME = True
     change_runtime_file_names(params["gen_runtime"])
