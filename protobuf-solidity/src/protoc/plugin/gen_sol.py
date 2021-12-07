@@ -256,13 +256,14 @@ def apply_options(params_string):
     util.set_solc_version(params["solc_version"])
 
 def change_runtime_file_names(name: str):
-  if name.endswith(".sol"):
-    global RUNTIME_FILE_NAME, PROTOBUF_ANY_FILE_NAME
-    RUNTIME_FILE_NAME = name
-    dirname = os.path.dirname(RUNTIME_FILE_NAME)
-    if dirname:
-      # GoogleProtobufAny.sol and ProtoBufRuntime.sol must be put together in the same directory
-      PROTOBUF_ANY_FILE_NAME = "{0}/{1}".format(dirname, PROTOBUF_ANY_FILE_NAME)
+  if not name.endswith(".sol"):
+    raise ValueError('Only *.sol file is acceptable, but {0} is specified'.format(name))
+  global RUNTIME_FILE_NAME, PROTOBUF_ANY_FILE_NAME
+  RUNTIME_FILE_NAME = name
+  # GoogleProtobufAny.sol and ProtoBufRuntime.sol must be put together in the same directory
+  PROTOBUF_ANY_FILE_NAME = os.path.join(
+      os.path.dirname(RUNTIME_FILE_NAME),
+      os.path.basename(PROTOBUF_ANY_FILE_NAME))
 
 def gen_output_path(dependency: FileDescriptor) -> str:
   dirname = os.path.dirname(dependency.name)
