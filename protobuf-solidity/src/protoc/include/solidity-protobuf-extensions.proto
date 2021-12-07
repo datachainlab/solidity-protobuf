@@ -5,8 +5,8 @@ package solidity;
 import "google/protobuf/descriptor.proto";
 
 message FileOptions {
-  optional string dirpath = 1;
+  string dirpath = 1;
 }
 extend google.protobuf.FileOptions {
-  optional FileOptions file_options = 50000;
+  FileOptions file_options = 50000;
 }

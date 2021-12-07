@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\"solidity-protobuf-extensions.proto\x12\x08solidity\x1a google/protobuf/descriptor.proto\"/\n\x0b\x46ileOptions\x12\x14\n\x07\x64irpath\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\n\n\x08_dirpath:N\n\x0c\x66ile_options\x12\x1c.google.protobuf.FileOptions\x18\xd0\x86\x03 \x01(\x0b\x32\x15.solidity.FileOptions\x88\x01\x01\x62\x06proto3'
+  serialized_pb=b'\n\"solidity-protobuf-extensions.proto\x12\x08solidity\x1a google/protobuf/descriptor.proto\"\x1e\n\x0b\x46ileOptions\x12\x0f\n\x07\x64irpath\x18\x01 \x01(\t:K\n\x0c\x66ile_options\x12\x1c.google.protobuf.FileOptions\x18\xd0\x86\x03 \x01(\x0b\x32\x15.solidity.FileOptionsb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_descriptor__pb2.DESCRIPTOR,])
 
@@ -61,19 +61,11 @@ _FILEOPTIONS = _descriptor.Descriptor(
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
-    _descriptor.OneofDescriptor(
-      name='_dirpath', full_name='solidity.FileOptions._dirpath',
-      index=0, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
   ],
   serialized_start=82,
-  serialized_end=129,
+  serialized_end=112,
 )
 
-_FILEOPTIONS.oneofs_by_name['_dirpath'].fields.append(
-  _FILEOPTIONS.fields_by_name['dirpath'])
-_FILEOPTIONS.fields_by_name['dirpath'].containing_oneof = _FILEOPTIONS.oneofs_by_name['_dirpath']
 DESCRIPTOR.message_types_by_name['FileOptions'] = _FILEOPTIONS
 DESCRIPTOR.extensions_by_name['file_options'] = file_options
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
