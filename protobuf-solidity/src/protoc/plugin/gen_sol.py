@@ -14,6 +14,7 @@ from gen_decoder import gen_decoder_section
 from gen_encoder import gen_encoder_section
 import gen_util as util
 import gen_sol_constants as sol_constants
+import solidity_protobuf_extensions_pb2 as solpbext
 
 
 def gen_fields(msg: Descriptor) -> str:
@@ -223,20 +224,23 @@ def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
     enum_definition = gen_enum_definition(file),
   ))
 
-SOLIDITY_NATIVE_TYPEDEFS = "SolidityTypes.proto"
 RUNTIME_FILE_NAME = "ProtoBufRuntime.sol"
 PROTOBUF_ANY_FILE_NAME = "GoogleProtobufAny.sol"
 GEN_RUNTIME = False
 COMPILE_META_SCHEMA = False
 def apply_options(params_string):
+  global GEN_RUNTIME
   params = util.parse_urllike_parameter(params_string)
+  if 'gen_runtime' in params and 'use_runtime' in params:
+    raise ValueError('"gen_runtime" and "use_runtime" cannot be used together')
   if "gen_runtime" in params:
-    global GEN_RUNTIME
     GEN_RUNTIME = True
-    name = params["gen_runtime"]
-    if name.endswith(".sol"):
-      global RUNTIME_FILE_NAME
-      RUNTIME_FILE_NAME = name
+    change_runtime_file_names(params["gen_runtime"])
+  if "use_runtime" in params:
+    GEN_RUNTIME = False
+    change_runtime_file_names(params["use_runtime"])
+  if "ignore_protos" in params:
+    util.set_ignored_protos(params["ignore_protos"])
   if "pb_libname" in params:
     util.change_pb_libname_prefix(params["pb_libname"])
   if "for_linking" in params:
@@ -253,6 +257,28 @@ def apply_options(params_string):
   if "solc_version" in params:
     util.set_solc_version(params["solc_version"])
 
+def change_runtime_file_names(name: str):
+  if not name.endswith(".sol"):
+    raise ValueError('Only *.sol file is acceptable, but {0} is specified'.format(name))
+  global RUNTIME_FILE_NAME, PROTOBUF_ANY_FILE_NAME
+  RUNTIME_FILE_NAME = name
+  # GoogleProtobufAny.sol and ProtoBufRuntime.sol must be put together in the same directory
+  PROTOBUF_ANY_FILE_NAME = os.path.join(
+      os.path.dirname(RUNTIME_FILE_NAME),
+      os.path.basename(PROTOBUF_ANY_FILE_NAME))
+
+def gen_output_path(dependency: FileDescriptor) -> str:
+  dirname = os.path.dirname(dependency.name)
+  basename = os.path.basename(dependency.name).replace('.proto', '.sol')
+  if dependency.GetOptions().HasExtension(solpbext.file_options):
+    opts = dependency.GetOptions().Extensions[solpbext.file_options]
+    if opts.dirpath:
+      dirname = opts.dirpath
+  if dirname:
+    return '{0}/{1}'.format(dirname, basename)
+  else:
+    return '{0}'.format(basename)
+
 def generate_code(request, response):
   pool = DescriptorPool()
   for f in request.proto_file:
@@ -267,7 +293,10 @@ def generate_code(request, response):
     if (proto_file.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
       continue
     # skip native solidity type definition
-    if SOLIDITY_NATIVE_TYPEDEFS in proto_file.name:
+    if proto_file.package == "solidity":
+      continue
+    # skip descriptors listed by ignored_protos
+    if util.ignores_proto(proto_file.name):
       continue
     # main output
     output = []
@@ -277,14 +306,16 @@ def generate_code(request, response):
     output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
     for pragma in util.SOLIDITY_PRAGMAS:
       output.append('{0};'.format(pragma))
-    output.append('import "./{0}";'.format(RUNTIME_FILE_NAME))
-    output.append('import "./{0}";'.format(PROTOBUF_ANY_FILE_NAME))
+    output.append('import "{0}";'.format(RUNTIME_FILE_NAME))
+    output.append('import "{0}";'.format(PROTOBUF_ANY_FILE_NAME))
     for dep in proto_file.dependencies:
-      if SOLIDITY_NATIVE_TYPEDEFS in dep.name:
+      if dep.package == "solidity":
         continue
       if (dep.package == "google.protobuf") and (not COMPILE_META_SCHEMA):
         continue
-      output.append('import "./{0}";'.format(dep.name.replace('.proto', '.sol')))
+      if util.ignores_proto(dep.name):
+        continue
+      output.append('import "{0}";'.format(gen_output_path(dep)))
 
     # generate per message codes
     delegate_codecs = []
@@ -299,9 +330,8 @@ def generate_code(request, response):
 
     if len(delegate_codecs) > 0: # if it has any contents, output pb.sol file
       # Fill response
-      basepath = os.path.basename(proto_file.name)
       f = response.file.add()
-      f.name = basepath.replace('.proto', '.sol')
+      f.name = gen_output_path(proto_file)
       f.content = '\n'.join(output)
       # increase generated file count
       generated = generated + 1
