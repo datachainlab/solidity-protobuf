@@ -5,4 +5,5 @@ protoc-python:
 		protobuf-solidity/src/protoc/include/solidity-protobuf-extensions.proto
 
 .PHONY: test
+test:
 	./test.sh
