@@ -315,7 +315,6 @@ def generate_code(request, response):
     output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
     for pragma in util.SOLIDITY_PRAGMAS:
       output.append('{0};'.format(pragma))
-    global GEN_RUNTIME
     if GEN_RUNTIME:
       output.append('import "{0}";'.format(gen_relative_import_path(RUNTIME_FILE_NAME, output_path)))
       output.append('import "{0}";'.format(gen_relative_import_path(PROTOBUF_ANY_FILE_NAME, output_path)))
