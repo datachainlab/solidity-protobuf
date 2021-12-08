@@ -279,7 +279,7 @@ def gen_output_path(dependency: FileDescriptor) -> str:
   else:
     return '{0}'.format(basename)
 
-def gen_import_path(target: str, start: str) -> str:
+def gen_relative_import_path(target: str, start: str) -> str:
   target = os.path.join('root', target)
   start = os.path.join('root', start)
   d = os.path.relpath(os.path.dirname(target), os.path.dirname(start))
@@ -315,8 +315,13 @@ def generate_code(request, response):
     output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
     for pragma in util.SOLIDITY_PRAGMAS:
       output.append('{0};'.format(pragma))
-    output.append('import "{0}";'.format(gen_import_path(RUNTIME_FILE_NAME, output_path)))
-    output.append('import "{0}";'.format(gen_import_path(PROTOBUF_ANY_FILE_NAME, output_path)))
+    global GEN_RUNTIME
+    if GEN_RUNTIME:
+      output.append('import "{0}";'.format(gen_relative_import_path(RUNTIME_FILE_NAME, output_path)))
+      output.append('import "{0}";'.format(gen_relative_import_path(PROTOBUF_ANY_FILE_NAME, output_path)))
+    else:
+      output.append('import "{0}";'.format(RUNTIME_FILE_NAME))
+      output.append('import "{0}";'.format(PROTOBUF_ANY_FILE_NAME))
     for dep in proto_file.dependencies:
       if dep.package == "solidity":
         continue
@@ -325,7 +330,7 @@ def generate_code(request, response):
       if util.ignores_proto(dep.name):
         continue
       dep_output_path = gen_output_path(dep)
-      output.append('import "{0}";'.format(gen_import_path(dep_output_path, output_path)))
+      output.append('import "{0}";'.format(gen_relative_import_path(dep_output_path, output_path)))
 
     # generate per message codes
     delegate_codecs = []
