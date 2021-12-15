@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package solidity;
 
+option go_package = "github.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidity";
+
 import "google/protobuf/descriptor.proto";
 
 message FileOptions {
