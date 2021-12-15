@@ -1,6 +1,9 @@
 syntax = "proto3";
 
 package solidity;
+
+option go_package = "github.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidity";
+
 // Structures for representing Solidity's native primitive types
 // borrow from shmookey/solpb and remove some definitions,
 // which should compatible with pb native type (eg. stirng/bool/uint32/uint64)
