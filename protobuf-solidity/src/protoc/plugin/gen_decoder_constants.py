@@ -68,24 +68,18 @@ INNER_DECODER = """
 INNER_DECODER_ELSE = """
       else {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_fixed64(pointer, bs);
-          pointer += size;
+          pointer += 8;
         }}
         if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_fixed32(pointer, bs);
-          pointer += size;
+          pointer += 4;
         }}
         if (wireType == ProtoBufRuntime.WireType.Varint) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_varint(pointer, bs);
+          (, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_lendelim(pointer, bs);
-          pointer += size;
+          (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
+          pointer += size + len;
         }}
       }}
 """
@@ -96,24 +90,18 @@ INNER_DECODER_SECOND_PASS = """
       pointer += bytesRead;{second_pass}
       else {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_fixed64(pointer, bs);
-          pointer += size;
+          pointer += 8;
         }}
         if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_fixed32(pointer, bs);
-          pointer += size;
+          pointer += 4;
         }}
         if (wireType == ProtoBufRuntime.WireType.Varint) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_varint(pointer, bs);
+          (, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
           pointer += size;
         }}
         if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          uint256 size;
-          (, size) = ProtoBufRuntime._decode_lendelim(pointer, bs);
-          pointer += size;
+          (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
+          pointer += size + len;
         }}
       }}
     }}"""
