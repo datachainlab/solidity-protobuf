@@ -1,1 +1,2 @@
 protobuf>=3.0.0
+wrapt>=1.13.0
