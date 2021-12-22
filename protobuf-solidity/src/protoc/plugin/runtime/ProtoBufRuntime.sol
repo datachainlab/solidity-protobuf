@@ -946,16 +946,6 @@ library ProtoBufRuntime {
     }
     return count;
   }
-  function _count_packed_repeated_lendelim(uint256 p, uint256 len, bytes memory bs) internal pure returns (uint256) {
-    uint256 count = 0;
-    uint256 end = p + len;
-    while (p < end) {
-      (uint256 l, uint256 sz) = _decode_varint(p, bs);
-      p += sz + l;
-      count += 1;
-    }
-    return count;
-  }
 
   // Soltype extensions
   /**
