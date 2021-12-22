@@ -202,6 +202,7 @@ def gen_codec(msg: Descriptor, delegate_codecs: List[str]):
     utility_functions = gen_utility_functions(msg)
   ))
   for nested in msg.nested_types:
+    nested = nested if not util.ALLOW_RESERVED_KEYWORDS else util.MessageWrapper(nested)
     gen_codec(nested, delegate_codecs)
 
 def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
@@ -256,6 +257,8 @@ def apply_options(params_string):
     COMPILE_META_SCHEMA = True
   if "solc_version" in params:
     util.set_solc_version(params["solc_version"])
+  if "allow_reserved_keywords" in params:
+    util.set_allow_reserved_keywords(True)
 
 def change_runtime_file_names(name: str):
   if not name.endswith(".sol"):
@@ -334,6 +337,7 @@ def generate_code(request, response):
     # generate per message codes
     delegate_codecs = []
     for msg in proto_file.message_types_by_name.values():
+      msg = msg if not util.ALLOW_RESERVED_KEYWORDS else util.MessageWrapper(msg)
       gen_codec(msg, delegate_codecs)
     if len(proto_file.enum_types_by_name):
       gen_global_enum(proto_file, delegate_codecs)
