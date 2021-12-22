@@ -1,5 +1,6 @@
 import sys
 import pprint
+import wrapt
 import gen_util_constants as util_constants
 from google.protobuf.descriptor import Descriptor, EnumDescriptor, EnumValueDescriptor, FieldDescriptor, FileDescriptor
 from typing import Tuple
@@ -173,6 +174,22 @@ SolType2BodyLen = {
   "bytes32": 32,
 }
 
+SOL_RESERVED_KEYWORDS = set([
+  # global variables
+  "abi", "block", "gasleft",
+  "msg", "now", "tx",
+  "assert", "require", "revert",
+  "blockhash", "keccak256", "sha256",
+  "ripemd160", "ecrecover", "addmod",
+  "mulmod", "this", "super", "selfdestruct",
+  "type", "address", "bytes",
+
+  # units
+  "wei", "gwei", "ether",
+  "seconds", "minutes", "hours",
+  "days", "weeks"
+])
+
 INTERNAL_TYPE_CATEGORY_BUILTIN = 1
 INTERNAL_TYPE_CATEGORY_ENUM = 2
 INTERNAL_TYPE_CATEGORY_USERTYPE = 3
@@ -180,6 +197,7 @@ INTERNAL_TYPE_CATEGORY_USERTYPE = 3
 PB_LIB_NAME_PREFIX = ""
 LIBRARY_LINKING_MODE = False
 ENUM_AS_CONSTANT = False
+ALLOW_RESERVED_KEYWORDS = False
 SOLIDITY_VERSION = "0.8.10"
 SOLIDITY_PRAGMAS = []
 IGNORED_PROTOS = []
@@ -499,6 +517,10 @@ def set_solc_version(version: str):
   global SOLIDITY_VERSION
   SOLIDITY_VERSION = version
 
+def set_allow_reserved_keywords(on: bool):
+  global ALLOW_RESERVED_KEYWORDS
+  ALLOW_RESERVED_KEYWORDS = on
+
 def set_enum_as_constant(on: bool):
   global ENUM_AS_CONSTANT
   ENUM_AS_CONSTANT = on
@@ -575,3 +597,31 @@ class EmptyCheckBlock:
       return ""
     else:
       return "}"
+
+class MessageFieldWrapper(wrapt.ObjectProxy):
+  @property
+  def name(self):
+    if self.__wrapped__.name in SOL_RESERVED_KEYWORDS:
+      return self.__wrapped__.name.capitalize()
+    return self.__wrapped__.name
+
+class MessageFieldsWrapper(wrapt.ObjectProxy):
+  def __init__(self, wrapped):
+    super(MessageFieldsWrapper, self).__init__(wrapped)
+    self._self_fields = None
+
+  def __iter__(self):
+    if self._self_fields is None:
+       self._self_fields = [MessageFieldWrapper(f) for f in self.__wrapped__]
+
+    for f in self._self_fields:
+      yield f
+
+class MessageWrapper(wrapt.ObjectProxy):
+  def __init__(self, wrapped):
+    super(MessageWrapper, self).__init__(wrapped)
+    self._self_fields = MessageFieldsWrapper(wrapped.fields)
+
+  @property
+  def fields(self):
+    return self._self_fields
