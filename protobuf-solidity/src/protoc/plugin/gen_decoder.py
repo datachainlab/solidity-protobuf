@@ -93,7 +93,7 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
     assert library_name != "."
     decode_type = util.gen_global_type_decl_from_field(f)
     assert decode_type[0] != "."
-    return (decoder_constants.ENUM_FIELD_READER).format(
+    reader = (decoder_constants.ENUM_FIELD_READER).format(
       field = f.name,
       decoder = util.gen_decoder_name(f),
       decode_type = decode_type,
@@ -104,7 +104,20 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
       enum_name = type_name.split(".")[-1],
       library_name = library_name
     )
-  return (decoder_constants.FIELD_READER).format(
+    if not suffix:
+      return reader
+    reader += (decoder_constants.PACKED_REPEATED_ENUM_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = decode_type,
+      t = util.gen_internal_struct_name(msg),
+      i = f.number,
+      n = util.max_field_number(msg) + 1,
+      enum_name = type_name.split(".")[-1],
+      library_name = library_name
+    )
+    return reader
+  reader = (decoder_constants.FIELD_READER).format(
     field = f.name,
     decoder = util.gen_decoder_name(f),
     decode_type = util.gen_global_type_decl_from_field(f),
@@ -113,6 +126,17 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
     n = util.max_field_number(msg) + 1,
     suffix = suffix
   )
+  if util.gen_wire_type(f) not in ['Varint', 'Fixed32', 'Fixed64'] or not suffix:
+    return reader
+  reader += (decoder_constants.PACKED_REPEATED_FIELD_READER).format(
+    field = f.name,
+    decoder = util.gen_decoder_name(f),
+    decode_type = util.gen_global_type_decl_from_field(f),
+    t = util.gen_internal_struct_name(msg),
+    i = f.number,
+    n = util.max_field_number(msg) + 1
+  )
+  return reader
 
 
 def gen_field_readers(msg: Descriptor) -> str:
