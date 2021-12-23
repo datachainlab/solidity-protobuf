@@ -24,6 +24,15 @@ MAIN_DECODER = """
     store(x, self);
   }}"""
 
+INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER = """
+      {control}if (fieldId == {id}) {{
+        if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
+          pointer += _read_packed_repeated_{field}({args});
+        }} else {{
+          pointer += _read_{field}({args});
+        }}
+      }}"""
+
 INNER_FIELD_DECODER = """
       {control}if (fieldId == {id}) {{
         pointer += _read_{field}({args});

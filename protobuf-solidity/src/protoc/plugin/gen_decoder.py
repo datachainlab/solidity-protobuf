@@ -20,17 +20,31 @@ def gen_inner_field_decoder(field: FieldDescriptor, first_pass: bool, index: int
       args = decoder_constants.INNER_FIELD_DECODER_NIL
     else:
       args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+    if util.field_is_scalar_numeric(field):
+      return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name,
+        args = args
+      )
+    else:
+      return (decoder_constants.INNER_FIELD_DECODER).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name,
+        args = args
+      )
   else:
     if first_pass:
       args = decoder_constants.INNER_FIELD_DECODER_REGULAR
     else:
       args = decoder_constants.INNER_FIELD_DECODER_NIL
-  return (decoder_constants.INNER_FIELD_DECODER).format(
-    control = ("else " if index > 0 else ""),
-    id = field.number,
-    field = field.name,
-    args = args
-  )
+    return (decoder_constants.INNER_FIELD_DECODER).format(
+      control = ("else " if index > 0 else ""),
+      id = field.number,
+      field = field.name,
+      args = args
+    )
 
 def gen_inner_fields_decoder(msg: Descriptor, first_pass: bool) -> str:
   transformed = [gen_inner_field_decoder(field, first_pass, index) for index, field in enumerate(msg.fields)]
