@@ -24,19 +24,24 @@ MAIN_DECODER = """
     store(x, self);
   }}"""
 
-INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER = """
-      {control}if (fieldId == {id}) {{
+INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_FIRST_PASS = """
+      if (fieldId == {id}) {{
         if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          pointer += _read_packed_repeated_{field}({args});
+          pointer += _read_packed_repeated_{field}({args_for_packed});
         }} else {{
-          pointer += _read_{field}({args});
+          pointer += _read_{field}({args_for_unpacked});
         }}
-      }}"""
+      }} else"""
+
+INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_SECOND_PASS = """
+      if (fieldId == {id} && wireType != ProtoBufRuntime.WireType.LengthDelim) {{
+        pointer += _read_{field}({args});
+      }} else"""
 
 INNER_FIELD_DECODER = """
-      {control}if (fieldId == {id}) {{
+      if (fieldId == {id}) {{
         pointer += _read_{field}({args});
-      }}"""
+      }} else"""
 
 INNER_ARRAY_ALLOCATOR = """
     r.{field} = new {t}(counters[{i}]);"""
@@ -67,15 +72,14 @@ INNER_DECODER = """
     uint256 pointer = p;
     while (pointer < offset + sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
-      pointer += bytesRead;{first_pass}
-      {else_statement}
+      pointer += bytesRead;{first_pass}{else_statement}
     }}{second_pass}
     return (r, sz);
   }}
 """
 
 INNER_DECODER_ELSE = """
-      else {{
+      {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
           pointer += 8;
         }}
@@ -97,7 +101,7 @@ INNER_DECODER_SECOND_PASS = """
     while (pointer < offset + sz) {{
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{second_pass}
-      else {{
+      {{
         if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
           pointer += 8;
         }}

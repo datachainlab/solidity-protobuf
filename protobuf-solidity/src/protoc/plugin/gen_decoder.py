@@ -13,38 +13,47 @@ Generate decoder for a field. If it is a repeated field, a second pass is requir
 and the first pass is to determine the number of elements.
 """
 def gen_inner_field_decoder(field: FieldDescriptor, first_pass: bool, index: int) -> str:
-  args = ""
-  repeated = util.field_is_repeated(field)
-  if repeated:
-    if first_pass:
-      args = decoder_constants.INNER_FIELD_DECODER_NIL
-    else:
-      args = decoder_constants.INNER_FIELD_DECODER_REGULAR
-    if util.field_is_scalar_numeric(field):
-      return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER).format(
+  if util.field_is_repeated(field):
+    scalar_numeric = util.field_is_scalar_numeric(field)
+    if first_pass and scalar_numeric:
+      return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_FIRST_PASS).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
         field = field.name,
-        args = args
+        args_for_packed = decoder_constants.INNER_FIELD_DECODER_REGULAR,
+        args_for_unpacked = decoder_constants.INNER_FIELD_DECODER_NIL
+      )
+    elif first_pass:
+      return (decoder_constants.INNER_FIELD_DECODER).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name,
+        args = decoder_constants.INNER_FIELD_DECODER_NIL
+      )
+    elif scalar_numeric:
+      return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_SECOND_PASS).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name,
+        args = decoder_constants.INNER_FIELD_DECODER_REGULAR
       )
     else:
       return (decoder_constants.INNER_FIELD_DECODER).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
         field = field.name,
-        args = args
+        args = decoder_constants.INNER_FIELD_DECODER_REGULAR
       )
   else:
     if first_pass:
-      args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+      return (decoder_constants.INNER_FIELD_DECODER).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name,
+        args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+      )
     else:
-      args = decoder_constants.INNER_FIELD_DECODER_NIL
-    return (decoder_constants.INNER_FIELD_DECODER).format(
-      control = ("else " if index > 0 else ""),
-      id = field.number,
-      field = field.name,
-      args = args
-    )
+      return ""
 
 def gen_inner_fields_decoder(msg: Descriptor, first_pass: bool) -> str:
   transformed = [gen_inner_field_decoder(field, first_pass, index) for index, field in enumerate(msg.fields)]
