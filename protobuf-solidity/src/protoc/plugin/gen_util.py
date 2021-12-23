@@ -225,6 +225,9 @@ def field_is_message(f: FieldDescriptor) -> bool:
 def field_is_repeated(f: FieldDescriptor) -> bool:
   return f.label == FieldDescriptor.LABEL_REPEATED
 
+def field_is_scalar_numeric(f: FieldDescriptor) -> bool:
+  return gen_wire_type(f) in ['Varint', 'Fixed32', 'Fixed64']
+
 def field_has_dyn_size(f: FieldDescriptor) -> bool:
   # if string or bytes, dynamic
   if f.type == FieldDescriptor.TYPE_STRING or f.type == FieldDescriptor.TYPE_BYTES:

@@ -135,13 +135,12 @@ FIELD_READER = """
   }}
 """
 
-PACKED_REPEATED_FIELD_READER = """
+PACKED_REPEATED_FIXED32_FIELD_READER = """
   /**
    * @dev The decoder for reading a field
    * @param p The offset of bytes array to start decode
    * @param bs The bytes array to be decoded
    * @param r The in-memory struct
-   * @param wireType The wire type of the field
    * @param counters The counters for repeated fields
    * @return The number of bytes decoded
    */
@@ -149,7 +148,6 @@ PACKED_REPEATED_FIELD_READER = """
     uint256 p,
     bytes memory bs,
     {t} memory r,
-    ProtoBufRuntime.WireType wireType,
     uint[{n}] memory counters
   ) internal pure returns (uint) {{
     /**
@@ -161,15 +159,79 @@ PACKED_REPEATED_FIELD_READER = """
       return size + len;
     }}
     p += size;
-    uint256 count;
-    if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-      count = len / 4;
-    }} else if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-      count = len / 8;
-    }} else {{
-      require(wireType == ProtoBufRuntime.WireType.Varint);
-      count = ProtoBufRuntime._count_packed_repeated_varint(p, len, bs);
+    uint256 count = len / 4;
+    r.{field} = new {decode_type}[](count);
+    for (uint256 i = 0; i < count; i++) {{
+      ({decode_type} x, uint256 sz) = {decoder}(p, bs);
+      p += sz;
+      r.{field}[i] = x;
     }}
+    if (counters[{i}] > 0) counters[{i}] -= 1;
+    return size + len;
+  }}
+"""
+
+PACKED_REPEATED_FIXED64_FIELD_READER = """
+  /**
+   * @dev The decoder for reading a field
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @param r The in-memory struct
+   * @param counters The counters for repeated fields
+   * @return The number of bytes decoded
+   */
+  function _read_packed_repeated_{field}(
+    uint256 p,
+    bytes memory bs,
+    {t} memory r,
+    uint[{n}] memory counters
+  ) internal pure returns (uint) {{
+    /**
+     * if `r` is NULL, then only counting the number of fields.
+     */
+    (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(p, bs);
+    if (isNil(r)) {{
+      counters[{i}] += 1;
+      return size + len;
+    }}
+    p += size;
+    uint256 count = len / 8;
+    r.{field} = new {decode_type}[](count);
+    for (uint256 i = 0; i < count; i++) {{
+      ({decode_type} x, uint256 sz) = {decoder}(p, bs);
+      p += sz;
+      r.{field}[i] = x;
+    }}
+    if (counters[{i}] > 0) counters[{i}] -= 1;
+    return size + len;
+  }}
+"""
+
+PACKED_REPEATED_VARINT_FIELD_READER = """
+  /**
+   * @dev The decoder for reading a field
+   * @param p The offset of bytes array to start decode
+   * @param bs The bytes array to be decoded
+   * @param r The in-memory struct
+   * @param counters The counters for repeated fields
+   * @return The number of bytes decoded
+   */
+  function _read_packed_repeated_{field}(
+    uint256 p,
+    bytes memory bs,
+    {t} memory r,
+    uint[{n}] memory counters
+  ) internal pure returns (uint) {{
+    /**
+     * if `r` is NULL, then only counting the number of fields.
+     */
+    (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(p, bs);
+    if (isNil(r)) {{
+      counters[{i}] += 1;
+      return size + len;
+    }}
+    p += size;
+    uint256 count = ProtoBufRuntime._count_packed_repeated_varint(p, len, bs);
     r.{field} = new {decode_type}[](count);
     for (uint256 i = 0; i < count; i++) {{
       ({decode_type} x, uint256 sz) = {decoder}(p, bs);

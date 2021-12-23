@@ -106,7 +106,7 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
     )
     if not suffix:
       return reader
-    reader += (decoder_constants.PACKED_REPEATED_ENUM_FIELD_READER).format(
+    return reader + (decoder_constants.PACKED_REPEATED_ENUM_FIELD_READER).format(
       field = f.name,
       decoder = util.gen_decoder_name(f),
       decode_type = decode_type,
@@ -116,7 +116,6 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
       enum_name = type_name.split(".")[-1],
       library_name = library_name
     )
-    return reader
   reader = (decoder_constants.FIELD_READER).format(
     field = f.name,
     decoder = util.gen_decoder_name(f),
@@ -126,9 +125,28 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
     n = util.max_field_number(msg) + 1,
     suffix = suffix
   )
-  if util.gen_wire_type(f) not in ['Varint', 'Fixed32', 'Fixed64'] or not suffix:
+  if not util.field_is_scalar_numeric(f) or not suffix:
     return reader
-  reader += (decoder_constants.PACKED_REPEATED_FIELD_READER).format(
+  if util.gen_wire_type(f) == 'Fixed32':
+    return reader + (decoder_constants.PACKED_REPEATED_FIXED32_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = util.gen_global_type_decl_from_field(f),
+      t = util.gen_internal_struct_name(msg),
+      i = f.number,
+      n = util.max_field_number(msg) + 1
+    )
+  if util.gen_wire_type(f) == 'Fixed64':
+    return reader + (decoder_constants.PACKED_REPEATED_FIXED64_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = util.gen_global_type_decl_from_field(f),
+      t = util.gen_internal_struct_name(msg),
+      i = f.number,
+      n = util.max_field_number(msg) + 1
+    )
+  assert util.gen_wire_type(f) == 'Varint'
+  return reader + (decoder_constants.PACKED_REPEATED_VARINT_FIELD_READER).format(
     field = f.name,
     decoder = util.gen_decoder_name(f),
     decode_type = util.gen_global_type_decl_from_field(f),
@@ -136,7 +154,6 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
     i = f.number,
     n = util.max_field_number(msg) + 1
   )
-  return reader
 
 
 def gen_field_readers(msg: Descriptor) -> str:
