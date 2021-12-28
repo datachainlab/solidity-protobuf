@@ -92,20 +92,7 @@ INNER_DECODER = """
 
 INNER_DECODER_ELSE = """
       {{
-        if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-          pointer += 8;
-        }}
-        if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-          pointer += 4;
-        }}
-        if (wireType == ProtoBufRuntime.WireType.Varint) {{
-          (, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
-          pointer += size;
-        }}
-        if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
-          pointer += size + len;
-        }}
+        pointer += ProtoBufRuntime._skip_field(wireType, pointer, bs);
       }}
 """
 INNER_DECODER_SECOND_PASS = """
@@ -114,20 +101,7 @@ INNER_DECODER_SECOND_PASS = """
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{second_pass}
       {{
-        if (wireType == ProtoBufRuntime.WireType.Fixed64) {{
-          pointer += 8;
-        }}
-        if (wireType == ProtoBufRuntime.WireType.Fixed32) {{
-          pointer += 4;
-        }}
-        if (wireType == ProtoBufRuntime.WireType.Varint) {{
-          (, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
-          pointer += size;
-        }}
-        if (wireType == ProtoBufRuntime.WireType.LengthDelim) {{
-          (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(pointer, bs);
-          pointer += size + len;
-        }}
+        pointer += ProtoBufRuntime._skip_field(wireType, pointer, bs);
       }}
     }}"""
 

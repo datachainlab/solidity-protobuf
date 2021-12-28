@@ -559,6 +559,32 @@ library ProtoBufRuntime {
     return (b, sz + len);
   }
 
+  /**
+   * @dev Skip one field
+   * @param wt The WireType of the field
+   * @param p The memory offset of `bs`
+   * @param bs The bytes array to be decoded
+   * @return The length of `bs` to skipped
+   */
+  function _skip_field(WireType wt, uint256 p, bytes memory bs)
+    internal
+    pure
+    returns (uint256)
+  {
+    if (wt == ProtoBufRuntime.WireType.Fixed64) {
+      return 8;
+    } else if (wt == ProtoBufRuntime.WireType.Fixed32) {
+      return 4;
+    } else if (wt == ProtoBufRuntime.WireType.Varint) {
+      (, uint256 size) = ProtoBufRuntime._decode_varint(p, bs);
+      return size;
+    } else {
+      require(wt == ProtoBufRuntime.WireType.LengthDelim);
+      (uint256 len, uint256 size) = ProtoBufRuntime._decode_varint(p, bs);
+      return size + len;
+    }
+  }
+
   // Encoders
   /**
    * @dev Encode ProtoBuf key
