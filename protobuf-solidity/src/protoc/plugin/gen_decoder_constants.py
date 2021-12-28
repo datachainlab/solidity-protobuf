@@ -301,7 +301,7 @@ UNPACKED_REPEATED_ENUM_FIELD_READER = """
       counters[{i}] += 1;
     }} else {{
       r.{field}[r.{field}.length - counters[{i}]] = x;
-      if(counters[{i}] > 0) counters[{i}] -= 1;
+      counters[{i}] -= 1;
     }}
     return sz;
   }}
