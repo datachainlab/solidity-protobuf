@@ -960,6 +960,57 @@ library ProtoBufRuntime {
     return _sz_varint(_encode_zigzag(i));
   }
 
+  /**
+   * `_estimate_packed_repeated_(uint32|uint64|int32|int64|sint32|sint64)`
+   */
+  function _estimate_packed_repeated_uint32(uint32[] memory a) internal pure returns (uint256) {
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {
+      e += _sz_uint32(a[i]);
+    }
+    return e;
+  }
+
+  function _estimate_packed_repeated_uint64(uint64[] memory a) internal pure returns (uint256) {
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {
+      e += _sz_uint64(a[i]);
+    }
+    return e;
+  }
+
+  function _estimate_packed_repeated_int32(int32[] memory a) internal pure returns (uint256) {
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {
+      e += _sz_int32(a[i]);
+    }
+    return e;
+  }
+
+  function _estimate_packed_repeated_int64(int64[] memory a) internal pure returns (uint256) {
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {
+      e += _sz_int64(a[i]);
+    }
+    return e;
+  }
+
+  function _estimate_packed_repeated_sint32(int32[] memory a) internal pure returns (uint256) {
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {
+      e += _sz_sint32(a[i]);
+    }
+    return e;
+  }
+
+  function _estimate_packed_repeated_sint64(int64[] memory a) internal pure returns (uint256) {
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {
+      e += _sz_sint64(a[i]);
+    }
+    return e;
+  }
+
   // Element counters for packed repeated fields
   function _count_packed_repeated_varint(uint256 p, uint256 len, bytes memory bs) internal pure returns (uint256) {
     uint256 count = 0;

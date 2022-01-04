@@ -73,29 +73,53 @@ def gen_nested_encoder(msg: Descriptor) -> str:
 def gen_field_scalar_size(f: FieldDescriptor, msg: Descriptor) -> str:
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
-  fname = f.name + ("[i]" if util.field_is_repeated(f) else "")
+  is_repeated = util.field_is_repeated(f)
+  is_packed = util.field_is_packed(f)
+  fname = f.name + ("[i]" if is_repeated and not is_packed else "")
   if wt == "Varint":
     if vt == "bool":
-      return "1"
+      if is_repeated and is_packed:
+        return "ProtoBufRuntime._sz_lendelim(r.{field}.length)".format(field = fname)
+      else:
+        return "1"
     if vt == "enum":
       type_name = util.gen_enum_name_from_field(f)
       library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
       assert library_name != "."
-      return ("ProtoBufRuntime._sz_{valtype}({library_name}encode_{enum_name}(r.{field}))").format(
-        valtype = vt,
-        field = fname,
-        enum_name = type_name.split(".")[-1],
-        library_name = library_name
-      )
+      if is_repeated and is_packed:
+        return ("ProtoBufRuntime._sz_lendelim({library_name}estimate_packed_repeated_{enum_name}(r.{field}))").format(
+          field = fname,
+          enum_name = type_name.split(".")[-1],
+          library_name = library_name
+        )
+      else:
+        return ("ProtoBufRuntime._sz_{valtype}({library_name}encode_{enum_name}(r.{field}))").format(
+          valtype = vt,
+          field = fname,
+          enum_name = type_name.split(".")[-1],
+          library_name = library_name
+        )
     else:
-      return ("ProtoBufRuntime._sz_{valtype}(r.{field})").format(
-        valtype = vt,
-        field = fname,
-      )
+      if is_repeated and is_packed:
+        return ("ProtoBufRuntime._sz_lendelim(ProtoBufRuntime._estimate_packed_repeated_{valtype}(r.{field}))").format(
+          valtype = vt,
+          field = fname,
+        )
+      else:
+        return ("ProtoBufRuntime._sz_{valtype}(r.{field})").format(
+          valtype = vt,
+          field = fname,
+        )
   elif wt == "Fixed64":
-    return "8"
+    if is_repeated and is_packed:
+      return "ProtoBufRuntime._sz_lendelim(8 * r.{field}.length)".format(field = fname)
+    else:
+      return "8"
   elif wt == "Fixed32":
-    return "4"
+    if is_repeated and is_packed:
+      return "ProtoBufRuntime._sz_lendelim(4 * r.{field}.length)".format(field = fname)
+    else:
+      return "4"
   elif wt == "LengthDelim":
     if vt == "bytes":
       return ("ProtoBufRuntime._sz_lendelim(r.{field}.length)").format(
@@ -120,13 +144,11 @@ def gen_field_scalar_size(f: FieldDescriptor, msg: Descriptor) -> str:
     return ("__does not support wire type {t}__").format(t = wt)
 
 def gen_field_estimator(f: FieldDescriptor, msg: Descriptor) -> str:
-  if util.field_is_repeated(f):
+  if util.field_is_repeated(f) and not util.field_is_packed(f):
     if util.is_map_type(f):
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED_MAP
-    elif util.field_is_packed(f):
-      template = encoder_constants.FIELD_ESTIMATOR_PACKED_REPEATED
     else:
-      template = encoder_constants.FIELD_ESTIMATOR_UNPACKED_REPEATED
+      template = encoder_constants.FIELD_ESTIMATOR_REPEATED
   else:
     template = encoder_constants.FIELD_ESTIMATOR_NOT_REPEATED
   return template.format(

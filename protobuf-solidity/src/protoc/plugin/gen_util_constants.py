@@ -34,6 +34,21 @@ ENUM_DECODE_FUNCTION = """
   }}
 """
 
+ENUM_ESTIMATE_FUNCTION = """
+  /**
+   * @dev The estimator for an packed enum array
+   * @return The number of bytes encoded
+   */
+  function estimate_packed_repeated_{enum_name}(
+    {enum_name}[] memory a
+  ) internal pure returns (uint256) {{
+    uint256 e = 0;
+    for (uint i = 0; i < a.length; i++) {{
+      e += ProtoBufRuntime._sz_enum(encode_{enum_name}(a[i]));
+    }}
+    return e;
+  }}"""
+
 ENUM_DECODE_FUNCTION_INNER = """
     if (x == {value}) {{
       return {enum_name}.{name};

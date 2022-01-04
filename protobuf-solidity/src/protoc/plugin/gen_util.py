@@ -433,7 +433,10 @@ def gen_enumtype(e: EnumDescriptor) -> str:
       enum_name = e.name,
       enum_values = gen_enum_decoders(e)
     )
-    return definition + "\n" + encoder + "\n" + decoder
+    estimator = util_constants.ENUM_ESTIMATE_FUNCTION.format(
+      enum_name = e.name
+    )
+    return definition + "\n" + encoder + "\n" + decoder + "\n" + estimator
 
 def gen_struct_decoder_name_from_field(field: FieldDescriptor) -> str:
   ftid, _ = gen_field_type_id(field)
