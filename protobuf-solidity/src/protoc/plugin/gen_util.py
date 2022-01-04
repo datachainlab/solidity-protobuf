@@ -228,6 +228,10 @@ def field_is_repeated(f: FieldDescriptor) -> bool:
 def field_is_scalar_numeric(f: FieldDescriptor) -> bool:
   return gen_wire_type(f) in ['Varint', 'Fixed32', 'Fixed64']
 
+def field_is_packed(f: FieldDescriptor) -> bool:
+  opt = f.GetOptions()
+  return opt.packed or field_is_scalar_numeric(f) and not opt.HasField("packed")
+
 def field_has_dyn_size(f: FieldDescriptor) -> bool:
   # if string or bytes, dynamic
   if f.type == FieldDescriptor.TYPE_STRING or f.type == FieldDescriptor.TYPE_BYTES:

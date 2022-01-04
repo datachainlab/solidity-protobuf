@@ -123,8 +123,10 @@ def gen_field_estimator(f: FieldDescriptor, msg: Descriptor) -> str:
   if util.field_is_repeated(f):
     if util.is_map_type(f):
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED_MAP
+    elif util.field_is_packed(f):
+      template = encoder_constants.FIELD_ESTIMATOR_PACKED_REPEATED
     else:
-      template = encoder_constants.FIELD_ESTIMATOR_REPEATED
+      template = encoder_constants.FIELD_ESTIMATOR_UNPACKED_REPEATED
   else:
     template = encoder_constants.FIELD_ESTIMATOR_NOT_REPEATED
   return template.format(

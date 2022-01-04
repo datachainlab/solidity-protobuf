@@ -126,7 +126,16 @@ NESTED_ENCODER = """
     return pointer - offset;
   }}"""
 
-FIELD_ESTIMATOR_REPEATED = """
+FIELD_ESTIMATOR_PACKED_REPEATED = """
+    {{
+      uint256 e_body = 0;
+      for(i = 0; i < r.{field}.length; i++) {{
+        e_body += {szItem};
+      }}
+      e += {szKey} + ProtoBufRuntime._sz_lendelim(e_body);
+    }}"""
+
+FIELD_ESTIMATOR_UNPACKED_REPEATED = """
     for(i = 0; i < r.{field}.length; i++) {{
       e += {szKey} + {szItem};
     }}"""
