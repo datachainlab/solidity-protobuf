@@ -560,13 +560,13 @@ library ProtoBufRuntime {
   }
 
   /**
-   * @dev Skip one field
+   * @dev Skip the decoding of a single field
    * @param wt The WireType of the field
    * @param p The memory offset of `bs`
    * @param bs The bytes array to be decoded
    * @return The length of `bs` to skipped
    */
-  function _skip_field(WireType wt, uint256 p, bytes memory bs)
+  function _skip_field_decode(WireType wt, uint256 p, bytes memory bs)
     internal
     pure
     returns (uint256)

@@ -92,7 +92,7 @@ INNER_DECODER = """
 
 INNER_DECODER_ELSE = """
       {{
-        pointer += ProtoBufRuntime._skip_field(wireType, pointer, bs);
+        pointer += ProtoBufRuntime._skip_field_decode(wireType, pointer, bs);
       }}
 """
 INNER_DECODER_SECOND_PASS = """
@@ -101,7 +101,7 @@ INNER_DECODER_SECOND_PASS = """
       (fieldId, wireType, bytesRead) = ProtoBufRuntime._decode_key(pointer, bs);
       pointer += bytesRead;{second_pass}
       {{
-        pointer += ProtoBufRuntime._skip_field(wireType, pointer, bs);
+        pointer += ProtoBufRuntime._skip_field_decode(wireType, pointer, bs);
       }}
     }}"""
 
