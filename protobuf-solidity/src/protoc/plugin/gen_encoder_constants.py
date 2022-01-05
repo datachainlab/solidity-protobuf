@@ -13,7 +13,7 @@ MAIN_ENCODER = """
     return bs;
   }}"""
 
-INNER_FIELD_ENCODER_REPEATED = """
+INNER_FIELD_ENCODER_UNPACKED_REPEATED = """
     {block_begin}
     for(i = 0; i < r.{field}.length; i++) {{
       pointer += ProtoBufRuntime._encode_key(
@@ -26,7 +26,7 @@ INNER_FIELD_ENCODER_REPEATED = """
     }}
     {block_end}"""
 
-INNER_FIELD_ENCODER_REPEATED_ENUM = """
+INNER_FIELD_ENCODER_UNPACKED_REPEATED_ENUM = """
     {block_begin}
     int32 _enum_{field};
     for(i = 0; i < r.{field}.length; i++) {{
@@ -51,6 +51,43 @@ INNER_FIELD_ENCODER_REPEATED_MAP = """
         bs
       );
       pointer += {encoder}(r.{field}[i], pointer, bs);
+    }}
+    {block_end}"""
+
+INNER_FIELD_ENCODER_PACKED_REPEATED = """
+    {block_begin}
+    pointer += ProtoBufRuntime._encode_key(
+      {key},
+      ProtoBufRuntime.WireType.LengthDelim,
+      pointer,
+      bs
+    );
+    pointer += ProtoBufRuntime._encode_varint(
+      {size},
+      pointer,
+      bs
+    );
+    for(i = 0; i < r.{field}.length; i++) {{
+      pointer += {encoder}(r.{field}[i], pointer, bs);
+    }}
+    {block_end}"""
+
+INNER_FIELD_ENCODER_PACKED_REPEATED_ENUM = """
+    {block_begin}
+    pointer += ProtoBufRuntime._encode_key(
+      {key},
+      ProtoBufRuntime.WireType.LengthDelim,
+      pointer,
+      bs
+    );
+    pointer += ProtoBufRuntime._encode_varint(
+      {size},
+      pointer,
+      bs
+    );
+    for(i = 0; i < r.{field}.length; i++) {{
+      int32 _enum_{field} = {library_name}encode_{enum_name}(r.{field}[i]);
+      pointer += {encoder}(_enum_{field}, pointer, bs);
     }}
     {block_end}"""
 
