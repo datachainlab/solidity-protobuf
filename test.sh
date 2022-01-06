@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -e
 rootdir="$(dirname "$0")"
 for file in $rootdir/proto/*
 do
