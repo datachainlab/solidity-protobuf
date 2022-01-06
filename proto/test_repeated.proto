@@ -6,4 +6,6 @@ message TestRepeated {
   repeated .solidity.uint256 uint256s = 2;
   repeated .solidity.int64 sint64s = 3;
   bool bool_field = 4;
+  repeated int32 unpacked_int32s = 5 [packed=false];
+  repeated int32 packed_int32s = 6 [packed=true];
 }
