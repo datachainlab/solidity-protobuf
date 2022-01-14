@@ -42,7 +42,6 @@ contract('TestRepeatedTwoPB', (accounts) => {
     assert.equal(JSON.stringify(unpacked_int32s_expected), JSON.stringify(unpacked_int32s.map(x => x.toNumber())));
     assert.equal(JSON.stringify(packed_int32s_expected), JSON.stringify(packed_int32s.map(x => x.toNumber())));
     assert.equal(JSON.stringify(bzs_expected), JSON.stringify(bzs));
-    console.log(bzs);
 
   })
 });
