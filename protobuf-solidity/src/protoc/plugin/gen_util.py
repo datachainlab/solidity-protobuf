@@ -225,6 +225,13 @@ def field_is_message(f: FieldDescriptor) -> bool:
 def field_is_repeated(f: FieldDescriptor) -> bool:
   return f.label == FieldDescriptor.LABEL_REPEATED
 
+def field_is_scalar_numeric(f: FieldDescriptor) -> bool:
+  return gen_wire_type(f) in ['Varint', 'Fixed32', 'Fixed64']
+
+def field_is_packed(f: FieldDescriptor) -> bool:
+  opt = f.GetOptions()
+  return opt.packed or field_is_scalar_numeric(f) and not opt.HasField("packed")
+
 def field_has_dyn_size(f: FieldDescriptor) -> bool:
   # if string or bytes, dynamic
   if f.type == FieldDescriptor.TYPE_STRING or f.type == FieldDescriptor.TYPE_BYTES:
@@ -426,7 +433,10 @@ def gen_enumtype(e: EnumDescriptor) -> str:
       enum_name = e.name,
       enum_values = gen_enum_decoders(e)
     )
-    return definition + "\n" + encoder + "\n" + decoder
+    estimator = util_constants.ENUM_ESTIMATE_FUNCTION.format(
+      enum_name = e.name
+    )
+    return definition + "\n" + encoder + "\n" + decoder + "\n" + estimator
 
 def gen_struct_decoder_name_from_field(field: FieldDescriptor) -> str:
   ftid, _ = gen_field_type_id(field)

@@ -13,24 +13,41 @@ Generate decoder for a field. If it is a repeated field, a second pass is requir
 and the first pass is to determine the number of elements.
 """
 def gen_inner_field_decoder(field: FieldDescriptor, first_pass: bool, index: int) -> str:
-  args = ""
-  repeated = util.field_is_repeated(field)
-  if repeated:
-    if first_pass:
-      args = decoder_constants.INNER_FIELD_DECODER_NIL
+  if util.field_is_repeated(field):
+    scalar_numeric = util.field_is_scalar_numeric(field)
+    if first_pass and scalar_numeric:
+      return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_FIRST_PASS).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name
+      )
+    elif first_pass:
+      return (decoder_constants.INNER_REPEATED_NON_SCALAR_NUMERIC_FIELD_DECODER_FIRST_PASS).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name
+      )
+    elif scalar_numeric:
+      return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_SECOND_PASS).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name
+      )
     else:
-      args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+      return (decoder_constants.INNER_REPEATED_NON_SCALAR_NUMERIC_FIELD_DECODER_SECOND_PASS).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name
+      )
   else:
     if first_pass:
-      args = decoder_constants.INNER_FIELD_DECODER_REGULAR
+      return (decoder_constants.INNER_FIELD_DECODER).format(
+        control = ("else " if index > 0 else ""),
+        id = field.number,
+        field = field.name
+      )
     else:
-      args = decoder_constants.INNER_FIELD_DECODER_NIL
-  return (decoder_constants.INNER_FIELD_DECODER).format(
-    control = ("else " if index > 0 else ""),
-    id = field.number,
-    field = field.name,
-    args = args
-  )
+      return ""
 
 def gen_inner_fields_decoder(msg: Descriptor, first_pass: bool) -> str:
   transformed = [gen_inner_field_decoder(field, first_pass, index) for index, field in enumerate(msg.fields)]
@@ -74,45 +91,97 @@ def gen_inner_decoder(msg: Descriptor) -> str:
       allocators = allocators,
       second_pass = gen_inner_fields_decoder(msg, False)
     )
+    counters = decoder_constants.INNER_COUNTERS.format(
+      n = util.max_field_number(msg) + 1
+    )
   else:
     second_pass = ""
+    counters = ""
   first_pass = gen_inner_fields_decoder(msg, True)
   return (decoder_constants.INNER_DECODER).format(
     struct = util.gen_internal_struct_name(msg),
-    n = util.max_field_number(msg) + 1,
+    counters = counters,
     first_pass = first_pass,
     else_statement = decoder_constants.INNER_DECODER_ELSE.format() if first_pass else "",
     second_pass = second_pass
   )
 
 def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
-  suffix = ("[r.{field}.length - counters[{i}]]").format(field = f.name, i = f.number) if util.field_is_repeated(f) else ""
-  if f.type == FieldDescriptor.TYPE_ENUM:
+  is_repeated = util.field_is_repeated(f)
+  is_enum = (f.type == FieldDescriptor.TYPE_ENUM)
+  if is_enum:
     type_name = util.gen_enum_name_from_field(f)
     library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
     assert library_name != "."
     decode_type = util.gen_global_type_decl_from_field(f)
     assert decode_type[0] != "."
-    return (decoder_constants.ENUM_FIELD_READER).format(
+    if not is_repeated:
+      return (decoder_constants.ENUM_FIELD_READER).format(
+        field = f.name,
+        decoder = util.gen_decoder_name(f),
+        decode_type = decode_type,
+        t = util.gen_internal_struct_name(msg),
+        enum_name = type_name.split(".")[-1],
+        library_name = library_name
+      )
+    else:
+      unpacked_reader = (decoder_constants.UNPACKED_REPEATED_ENUM_FIELD_READER).format(
+        field = f.name,
+        decoder = util.gen_decoder_name(f),
+        decode_type = decode_type,
+        t = util.gen_internal_struct_name(msg),
+        i = f.number,
+        n = util.max_field_number(msg) + 1,
+        enum_name = type_name.split(".")[-1],
+        library_name = library_name
+      )
+      packed_reader = (decoder_constants.PACKED_REPEATED_ENUM_FIELD_READER).format(
+        field = f.name,
+        decoder = util.gen_decoder_name(f),
+        decode_type = decode_type,
+        t = util.gen_internal_struct_name(msg),
+        enum_name = type_name.split(".")[-1],
+        library_name = library_name
+      )
+      return unpacked_reader + packed_reader
+  if not is_repeated:
+    return (decoder_constants.FIELD_READER).format(
       field = f.name,
       decoder = util.gen_decoder_name(f),
-      decode_type = decode_type,
+      decode_type = util.gen_global_type_decl_from_field(f),
       t = util.gen_internal_struct_name(msg),
-      i = f.number,
-      n = util.max_field_number(msg) + 1,
-      suffix = suffix,
-      enum_name = type_name.split(".")[-1],
-      library_name = library_name
     )
-  return (decoder_constants.FIELD_READER).format(
+  unpacked_reader = (decoder_constants.UNPACKED_REPEATED_FIELD_READER).format(
     field = f.name,
     decoder = util.gen_decoder_name(f),
     decode_type = util.gen_global_type_decl_from_field(f),
     t = util.gen_internal_struct_name(msg),
     i = f.number,
-    n = util.max_field_number(msg) + 1,
-    suffix = suffix
+    n = util.max_field_number(msg) + 1
   )
+  packed_reader = '' # this remains empty if wire type is length-delimited
+  if util.gen_wire_type(f) == 'Fixed32':
+    packed_reader = (decoder_constants.PACKED_REPEATED_FIXED32_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = util.gen_global_type_decl_from_field(f),
+      t = util.gen_internal_struct_name(msg)
+    )
+  elif util.gen_wire_type(f) == 'Fixed64':
+    packed_reader = (decoder_constants.PACKED_REPEATED_FIXED64_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = util.gen_global_type_decl_from_field(f),
+      t = util.gen_internal_struct_name(msg)
+    )
+  elif util.gen_wire_type(f) == 'Varint':
+    packed_reader = (decoder_constants.PACKED_REPEATED_VARINT_FIELD_READER).format(
+      field = f.name,
+      decoder = util.gen_decoder_name(f),
+      decode_type = util.gen_global_type_decl_from_field(f),
+      t = util.gen_internal_struct_name(msg)
+    )
+  return unpacked_reader + packed_reader
 
 
 def gen_field_readers(msg: Descriptor) -> str:

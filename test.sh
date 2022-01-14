@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -e
-for file in proto/*
+rootdir="$(dirname "$0")"
+for file in $rootdir/proto/*
 do
   if [[ -f $file ]]; then
     echo "Generating "$file
-    protoc -I$(pwd)/proto -I$(pwd)/protobuf-solidity/src/protoc/include --plugin=protoc-gen-sol=$(pwd)/protobuf-solidity/src/protoc/plugin/gen_sol.py --"sol_out=gen_runtime=ProtoBufRuntime.sol&solc_version=0.8.10:$(pwd)/contracts/libs/" $(pwd)/$file
+    protoc \
+	    -I"$rootdir/proto" \
+	    -I"$rootdir/protobuf-solidity/src/protoc/include" \
+	    --plugin=protoc-gen-sol="$rootdir/protobuf-solidity/src/protoc/plugin/gen_sol.py" \
+	    --sol_out="gen_runtime=ProtoBufRuntime.sol&solc_version=0.8.10:$rootdir/contracts/libs/" \
+	    $file
   fi
 done
 

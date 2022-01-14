@@ -17,23 +17,32 @@ def has_repeated_field(fields: List[FieldDescriptor]) -> bool:
 
 def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
   """Generates a code snippet that encodes a field (a part of _encode)"""
-  if util.field_is_repeated(f):
+  is_repeated = util.field_is_repeated(f)
+  is_packed = util.field_is_packed(f)
+  if is_repeated:
     if util.is_map_type(f):
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_MAP
-    elif f.type == FieldDescriptor.TYPE_ENUM:
-      template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_ENUM
+    elif f.type == FieldDescriptor.TYPE_ENUM and is_packed:
+      template = encoder_constants.INNER_FIELD_ENCODER_PACKED_REPEATED_ENUM
+    elif f.type == FieldDescriptor.TYPE_ENUM and not is_packed:
+      template = encoder_constants.INNER_FIELD_ENCODER_UNPACKED_REPEATED_ENUM
+    elif is_packed:
+      template = encoder_constants.INNER_FIELD_ENCODER_PACKED_REPEATED
     else:
-      template = encoder_constants.INNER_FIELD_ENCODER_REPEATED
+      template = encoder_constants.INNER_FIELD_ENCODER_UNPACKED_REPEATED
   elif f.type == FieldDescriptor.TYPE_ENUM:
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED_ENUM
   else:
     template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED
   type_name = ""
   library_name = ""
+  size = ""
   if f.type == FieldDescriptor.TYPE_ENUM:
     type_name = util.gen_enum_name_from_field(f)
     library_name = "" if msg.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
     assert library_name != "."
+  if is_repeated and is_packed:
+    size = gen_packed_repeated_array_size(f)
   ecblk = util.EmptyCheckBlock(f)
   return template.format(
     block_begin=ecblk.begin(),
@@ -43,6 +52,7 @@ def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
     encoder = util.gen_encoder_name(f),
     enum_name = type_name.split(".")[-1],
     library_name = library_name,
+    size = size,
     block_end=ecblk.end(),
   )
 
@@ -67,12 +77,43 @@ def gen_nested_encoder(msg: Descriptor) -> str:
     struct = util.gen_internal_struct_name(msg)
   )
 
+def gen_packed_repeated_array_size(f: FieldDescriptor) -> str:
+  assert util.field_is_repeated(f)
+  assert util.field_is_packed(f)
+  wt = util.gen_wire_type(f)
+  field = f.name
+  if wt == "Fixed32":
+    return "(4 * r.{field}.length)".format(field = field)
+  if wt == "Fixed64":
+    return "(8 * r.{field}.length)".format(field = field)
+  assert wt == "Varint"
+  vt = util.field_pb_type(f)
+  if vt == "bool":
+    return "r.{field}.length".format(field = field)
+  elif vt == "enum":
+    type_name = util.gen_enum_name_from_field(f)
+    library_name = "" if f.containing_type.name == type_name.split(".")[0] else (type_name.split(".")[0] + ".")
+    return "{library_name}estimate_packed_repeated_{enum_name}(r.{field})".format(
+      field = field,
+      enum_name = f.enum_type.name,
+      library_name = library_name
+    )
+  else:
+    return "ProtoBufRuntime._estimate_packed_repeated_{valtype}(r.{field})".format(
+      valtype = vt,
+      field = field
+    )
+
 """
   Determine the estimated size given the field type
 """
 def gen_field_scalar_size(f: FieldDescriptor, msg: Descriptor) -> str:
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
+  if util.field_is_repeated(f) and util.field_is_packed(f):
+    return "ProtoBufRuntime._sz_lendelim({})".format(
+      gen_packed_repeated_array_size(f)
+    )
   fname = f.name + ("[i]" if util.field_is_repeated(f) else "")
   if wt == "Varint":
     if vt == "bool":
@@ -120,7 +161,7 @@ def gen_field_scalar_size(f: FieldDescriptor, msg: Descriptor) -> str:
     return ("__does not support wire type {t}__").format(t = wt)
 
 def gen_field_estimator(f: FieldDescriptor, msg: Descriptor) -> str:
-  if util.field_is_repeated(f):
+  if util.field_is_repeated(f) and not util.field_is_packed(f):
     if util.is_map_type(f):
       template = encoder_constants.FIELD_ESTIMATOR_REPEATED_MAP
     else:
