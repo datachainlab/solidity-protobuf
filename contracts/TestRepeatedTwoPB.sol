@@ -47,6 +47,13 @@ contract TestRepeatedTwoPB {
     return data.packed_int32s;
   }
 
+  function getTestRepeatedBytes(address key) public view returns (bytes[] memory) {
+    bytes storage location = contracts[key];
+    bytes memory encoded = ProtoBufRuntime.decodeStorage(location);
+    TestRepeatedTwo.Data memory data = TestRepeatedTwo.decode(encoded);
+    return data.bzs;
+  }
+
   function storeTestRepeated(
     address key,
     string memory string_field,
@@ -54,7 +61,8 @@ contract TestRepeatedTwoPB {
     int64[] memory sint64s,
     bool bool_field,
     int32[] memory unpacked_int32s,
-    int32[] memory packed_int32s
+    int32[] memory packed_int32s,
+    bytes[] memory bzs
   ) public {
     TestRepeatedTwo.Data memory data = TestRepeatedTwo.Data({
       string_field: string_field,
@@ -62,7 +70,8 @@ contract TestRepeatedTwoPB {
       sint64s: sint64s,
       bool_field: bool_field,
       unpacked_int32s: unpacked_int32s,
-      packed_int32s: packed_int32s
+      packed_int32s: packed_int32s,
+      bzs: bzs
     });
     bytes memory encoded = TestRepeatedTwo.encode(data);
     ProtoBufRuntime.encodeStorage(contracts[key], encoded);

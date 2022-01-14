@@ -14,6 +14,7 @@ contract('TestRepeatedTwoPB', (accounts) => {
     let bool_field_expected = true;
     let unpacked_int32s_expected = [3, -2, 1, 0, -1000, 1000000, -1000000000];
     let packed_int32s_expected = [-3, 2, -1, 0, 1000, -1000000, 1000000000];
+    let bzs_expected = [ '0x666f6f', '0x68656c6c6f', '0x', '0x776f726c64', '0x62617a' ];
 
     await contractInstance.storeTestRepeated(
       accounts[0],
@@ -22,7 +23,8 @@ contract('TestRepeatedTwoPB', (accounts) => {
       sint64s_expected,
       bool_field_expected,
       unpacked_int32s_expected,
-      packed_int32s_expected
+      packed_int32s_expected,
+      bzs_expected
     );
 
     let string_field = await contractInstance.getTestRepeatedString(accounts[0]);
@@ -31,6 +33,7 @@ contract('TestRepeatedTwoPB', (accounts) => {
     let bool_field = await contractInstance.getTestRepeatedBool(accounts[0]);
     let unpacked_int32s = await contractInstance.getTestRepeatedUnpackedInt32(accounts[0]);
     let packed_int32s = await contractInstance.getTestRepeatedPackedInt32(accounts[0]);
+    let bzs = await contractInstance.getTestRepeatedBytes(accounts[0]);
 
     assert.equal(string_field_expected, string_field);
     assert.equal(JSON.stringify(uint256s_expected), JSON.stringify(uint256s.map(x => x.toNumber())));
@@ -38,6 +41,7 @@ contract('TestRepeatedTwoPB', (accounts) => {
     assert.equal(bool_field_expected, bool_field);
     assert.equal(JSON.stringify(unpacked_int32s_expected), JSON.stringify(unpacked_int32s.map(x => x.toNumber())));
     assert.equal(JSON.stringify(packed_int32s_expected), JSON.stringify(packed_int32s.map(x => x.toNumber())));
+    assert.equal(JSON.stringify(bzs_expected), JSON.stringify(bzs));
 
   })
 });
