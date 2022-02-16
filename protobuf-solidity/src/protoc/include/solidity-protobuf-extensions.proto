@@ -7,8 +7,7 @@ option go_package = "github.com/datachainlab/solidity-protobuf/protobuf-solidity
 import "google/protobuf/descriptor.proto";
 
 message FileOptions {
-  string package_name = 1;
-  string directory_path = 2;
+  string location = 1;
 }
 extend google.protobuf.FileOptions {
   FileOptions file_options = 50000;
