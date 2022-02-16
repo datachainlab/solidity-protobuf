@@ -15,7 +15,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import descriptor_pb2 as google_dot_protobuf_dot_descriptor__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\"solidity-protobuf-extensions.proto\x12\x08solidity\x1a google/protobuf/descriptor.proto\";\n\x0b\x46ileOptions\x12\x14\n\x0cpackage_name\x18\x01 \x01(\t\x12\x16\n\x0e\x64irectory_path\x18\x02 \x01(\t:K\n\x0c\x66ile_options\x12\x1c.google.protobuf.FileOptions\x18\xd0\x86\x03 \x01(\x0b\x32\x15.solidity.FileOptionsBTZRgithub.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidityb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\"solidity-protobuf-extensions.proto\x12\x08solidity\x1a google/protobuf/descriptor.proto\"\x1f\n\x0b\x46ileOptions\x12\x10\n\x08location\x18\x01 \x01(\t:K\n\x0c\x66ile_options\x12\x1c.google.protobuf.FileOptions\x18\xd0\x86\x03 \x01(\x0b\x32\x15.solidity.FileOptionsBTZRgithub.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidityb\x06proto3')
 
 
 FILE_OPTIONS_FIELD_NUMBER = 50000
@@ -35,5 +35,5 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'ZRgithub.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidity'
   _FILEOPTIONS._serialized_start=82
-  _FILEOPTIONS._serialized_end=141
+  _FILEOPTIONS._serialized_end=113
 # @@protoc_insertion_point(module_scope)
