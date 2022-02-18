@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
-from typing import Union, List
+from typing import Union, List, Tuple
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
@@ -270,25 +270,59 @@ def change_runtime_file_names(name: str):
       os.path.dirname(RUNTIME_FILE_NAME),
       os.path.basename(PROTOBUF_ANY_FILE_NAME))
 
-def gen_output_path(dependency: FileDescriptor) -> str:
-  dirname = os.path.dirname(dependency.name)
-  basename = os.path.basename(dependency.name).replace('.proto', '.sol')
-  if dependency.GetOptions().HasExtension(solpbext.file_options):
-    opts = dependency.GetOptions().Extensions[solpbext.file_options]
-    if opts.dirpath:
-      dirname = opts.dirpath
-  if dirname:
-    return '{0}/{1}'.format(dirname, basename)
-  else:
-    return '{0}'.format(basename)
+def get_location_option(f: FileDescriptor) -> str:
+  if not f.GetOptions().HasExtension(solpbext.file_options):
+    return ""
+  opts = f.GetOptions().Extensions[solpbext.file_options]
+  return opts.location
 
-def gen_relative_import_path(target: str, start: str) -> str:
-  target = os.path.join('root', target)
+def extract_npm_package_name_and_directory_path(location: str) -> Tuple[str, str]:
+  parts = location.split('/')
+  if location[0] == '@':
+    return '/'.join(parts[:2]), '/'.join(parts[2:])
+  else:
+    return parts[0], '/'.join(parts[1:])
+
+def to_sol(path: str) -> str:
+  return os.path.splitext(path)[0] + '.sol'
+
+# parse a string like "@scope/package/a/b/c/d.sol" into ("@scope/package", "a/b/c", "d.sol")
+def path_to_output_triple(path: str) -> Tuple[str, str, str]:
+  location, s = os.path.split(path)
+  p, d = extract_npm_package_name_and_directory_path(location)
+  return p, d, s
+
+# generate an output triple from FileDescriptor
+def desc_to_output_triple(f: FileDescriptor) -> Tuple[str, str, str]:
+  location = get_location_option(f)
+  if location:
+    p, d = extract_npm_package_name_and_directory_path(location)
+    s = to_sol(os.path.basename(f.name))
+    return p, d, s
+  else:
+    d, b = os.path.split(f.name)
+    s = to_sol(b)
+    return "", d, s
+
+def gen_output_path(f: FileDescriptor) -> str:
+  p, d, s = desc_to_output_triple(f)
+  return os.path.join(p, d, s)
+
+def calc_relpath(path: str, start: str) -> str:
+  path = os.path.join('root', path)
   start = os.path.join('root', start)
-  d = os.path.relpath(os.path.dirname(target), os.path.dirname(start))
-  if not d.startswith('.'):
-    d = os.path.join('.', d)
-  return os.path.join(d, os.path.basename(target))
+  return os.path.relpath(path, start)
+
+def gen_import_path(importee: Union[str, FileDescriptor], importer: FileDescriptor) -> str:
+  importee_triple = desc_to_output_triple(importee) if isinstance(importee, FileDescriptor) else path_to_output_triple(importee)
+  importer_triple = desc_to_output_triple(importer)
+  if importee_triple[0] == importer_triple[0]:
+    # relative import path
+    relpath = calc_relpath(importee_triple[1], importer_triple[1])
+    return os.path.join(relpath, importee_triple[2])
+  else:
+    # absolute import path
+    return os.path.join(*importee_triple)
 
 def generate_code(request, response):
   pool = DescriptorPool()
@@ -318,12 +352,8 @@ def generate_code(request, response):
     output.append('// SPDX-License-Identifier: Apache-2.0\npragma solidity ^{0};'.format(util.SOLIDITY_VERSION))
     for pragma in util.SOLIDITY_PRAGMAS:
       output.append('{0};'.format(pragma))
-    if GEN_RUNTIME:
-      output.append('import "{0}";'.format(gen_relative_import_path(RUNTIME_FILE_NAME, output_path)))
-      output.append('import "{0}";'.format(gen_relative_import_path(PROTOBUF_ANY_FILE_NAME, output_path)))
-    else:
-      output.append('import "{0}";'.format(RUNTIME_FILE_NAME))
-      output.append('import "{0}";'.format(PROTOBUF_ANY_FILE_NAME))
+    output.append('import "{0}";'.format(gen_import_path(RUNTIME_FILE_NAME, proto_file)))
+    output.append('import "{0}";'.format(gen_import_path(PROTOBUF_ANY_FILE_NAME, proto_file)))
     for dep in proto_file.dependencies:
       if dep.package == "solidity":
         continue
@@ -331,8 +361,7 @@ def generate_code(request, response):
         continue
       if util.ignores_proto(dep.name):
         continue
-      dep_output_path = gen_output_path(dep)
-      output.append('import "{0}";'.format(gen_relative_import_path(dep_output_path, output_path)))
+      output.append('import "{0}";'.format(gen_import_path(dep, proto_file)))
 
     # generate per message codes
     delegate_codecs = []
