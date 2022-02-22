@@ -3,6 +3,7 @@
 # source: solidity-protobuf-extensions.proto
 """Generated protocol buffer code."""
 from google.protobuf import descriptor as _descriptor
+from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
@@ -14,62 +15,13 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import descriptor_pb2 as google_dot_protobuf_dot_descriptor__pb2
 
 
-DESCRIPTOR = _descriptor.FileDescriptor(
-  name='solidity-protobuf-extensions.proto',
-  package='solidity',
-  syntax='proto3',
-  serialized_options=None,
-  create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\"solidity-protobuf-extensions.proto\x12\x08solidity\x1a google/protobuf/descriptor.proto\"\x1e\n\x0b\x46ileOptions\x12\x0f\n\x07\x64irpath\x18\x01 \x01(\t:K\n\x0c\x66ile_options\x12\x1c.google.protobuf.FileOptions\x18\xd0\x86\x03 \x01(\x0b\x32\x15.solidity.FileOptionsb\x06proto3'
-  ,
-  dependencies=[google_dot_protobuf_dot_descriptor__pb2.DESCRIPTOR,])
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\"solidity-protobuf-extensions.proto\x12\x08solidity\x1a google/protobuf/descriptor.proto\"\x1f\n\x0b\x46ileOptions\x12\x10\n\x08location\x18\x01 \x01(\t:K\n\x0c\x66ile_options\x12\x1c.google.protobuf.FileOptions\x18\xd0\x86\x03 \x01(\x0b\x32\x15.solidity.FileOptionsBTZRgithub.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidityb\x06proto3')
 
 
 FILE_OPTIONS_FIELD_NUMBER = 50000
-file_options = _descriptor.FieldDescriptor(
-  name='file_options', full_name='solidity.file_options', index=0,
-  number=50000, type=11, cpp_type=10, label=1,
-  has_default_value=False, default_value=None,
-  message_type=None, enum_type=None, containing_type=None,
-  is_extension=True, extension_scope=None,
-  serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key)
+file_options = DESCRIPTOR.extensions_by_name['file_options']
 
-
-_FILEOPTIONS = _descriptor.Descriptor(
-  name='FileOptions',
-  full_name='solidity.FileOptions',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='dirpath', full_name='solidity.FileOptions.dirpath', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=82,
-  serialized_end=112,
-)
-
-DESCRIPTOR.message_types_by_name['FileOptions'] = _FILEOPTIONS
-DESCRIPTOR.extensions_by_name['file_options'] = file_options
-_sym_db.RegisterFileDescriptor(DESCRIPTOR)
-
+_FILEOPTIONS = DESCRIPTOR.message_types_by_name['FileOptions']
 FileOptions = _reflection.GeneratedProtocolMessageType('FileOptions', (_message.Message,), {
   'DESCRIPTOR' : _FILEOPTIONS,
   '__module__' : 'solidity_protobuf_extensions_pb2'
@@ -77,7 +29,11 @@ FileOptions = _reflection.GeneratedProtocolMessageType('FileOptions', (_message.
   })
 _sym_db.RegisterMessage(FileOptions)
 
-file_options.message_type = _FILEOPTIONS
-google_dot_protobuf_dot_descriptor__pb2.FileOptions.RegisterExtension(file_options)
+if _descriptor._USE_C_DESCRIPTORS == False:
+  google_dot_protobuf_dot_descriptor__pb2.FileOptions.RegisterExtension(file_options)
 
+  DESCRIPTOR._options = None
+  DESCRIPTOR._serialized_options = b'ZRgithub.com/datachainlab/solidity-protobuf/protobuf-solidity/src/protoc/go;solidity'
+  _FILEOPTIONS._serialized_start=82
+  _FILEOPTIONS._serialized_end=113
 # @@protoc_insertion_point(module_scope)
