@@ -9,7 +9,7 @@ do
 	    -I"$rootdir/proto" \
 	    -I"$rootdir/protobuf-solidity/src/protoc/include" \
 	    --plugin=protoc-gen-sol="$rootdir/protobuf-solidity/src/protoc/plugin/gen_sol.py" \
-	    --sol_out="gen_runtime=ProtoBufRuntime.sol&solc_version=0.8.10:$rootdir/contracts/libs/" \
+	    --sol_out="gen_runtime=./ProtoBufRuntime.sol&solc_version=0.8.10:$rootdir/contracts/libs/" \
 	    $file
   fi
 done
