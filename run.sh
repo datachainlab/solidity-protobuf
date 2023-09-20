@@ -86,4 +86,4 @@ protoc \
 	-I"$parentdir" \
 	-I"$plugindir/include" \
 	--plugin="protoc-gen-sol=$plugindir/plugin/gen_sol.py" \
-	--sol_out=gen_runtime=ProtoBufRuntime.sol:$_arg_output $_arg_input
+	--sol_out=gen_runtime=$plugindir/plugin/runtime/ProtoBufRuntime.sol:$_arg_output $_arg_input
