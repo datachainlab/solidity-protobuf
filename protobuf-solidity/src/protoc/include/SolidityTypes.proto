@@ -6,7 +6,7 @@ option go_package = "github.com/datachainlab/solidity-protobuf/protobuf-solidity
 
 // Structures for representing Solidity's native primitive types
 // borrow from shmookey/solpb and remove some definitions,
-// which should compatible with pb native type (eg. stirng/bool/uint32/uint64)
+// which should compatible with pb native type (eg. string/bool/uint32/uint64)
 // or other solidity type (eg. uint/int)
 message address { bytes data = 1; }
 message uint8   { bytes data = 1; }
