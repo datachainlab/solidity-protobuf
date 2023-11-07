@@ -27,7 +27,7 @@ const _ = proto.ProtoPackageIsVersion4
 
 // Structures for representing Solidity's native primitive types
 // borrow from shmookey/solpb and remove some definitions,
-// which should compatible with pb native type (eg. stirng/bool/uint32/uint64)
+// which should compatible with pb native type (eg. string/bool/uint32/uint64)
 // or other solidity type (eg. uint/int)
 type Address struct {
 	state         protoimpl.MessageState
