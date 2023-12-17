@@ -2922,7 +2922,7 @@ library ProtoBufRuntime {
     uint256 base = 0xff;
     uint256 realSize = sz;
     while (
-      x & (base << (realSize * BYTE_SIZE - BYTE_SIZE)) == 0 && realSize > 0
+      realSize > 0 && x & (base << (realSize * BYTE_SIZE - BYTE_SIZE)) == 0
     ) {
       realSize -= 1;
     }
