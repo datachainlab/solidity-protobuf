@@ -195,6 +195,7 @@ def gen_empty_field_checkers(msg: Descriptor) -> str:
 def gen_empty_checker(msg: Descriptor) -> str:
   return (encoder_constants.EMPTY_CHECKER).format(
     struct = util.gen_internal_struct_name(msg),
+    varname = "r" if len(gen_empty_field_checkers(msg)) > 0 else "/* r */",
     checkers = gen_empty_field_checkers(msg)
   )
 

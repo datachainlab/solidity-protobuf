@@ -190,7 +190,7 @@ ESTIMATOR = """
 
 EMPTY_CHECKER = """
   function _empty(
-    {struct} memory r
+    {struct} memory {varname}
   ) internal pure returns (bool) {{
     {checkers}
     return true;
