@@ -1,0 +1,15 @@
+version: v1
+name: buf.build/cyberstorm/protoc-gen-solidity
+plugin_version: v1.0.0-cyberstorm
+description: "Generate Solidity contracts from protobuf with validation support and circular dependency fixes"
+source_url: "https://github.com/cyberstorm-dev/solidity-protobuf"
+deps:
+  - buf.build/protocolbuffers/protobuf
+  - buf.build/bufbuild/protovalidate
+runtime:
+  python:
+    requirements:
+      - protobuf>=4.25.1
+      - wrapt
+spdx_license_id: Apache-2.0
+license_url: "https://github.com/datachainlab/solidity-protobuf/blob/master/LICENSE"
