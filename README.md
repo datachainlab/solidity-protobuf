@@ -50,6 +50,32 @@ Then install python requirements. Python >= 3.5 is required.
 
 ```pip install -r requirements.txt```
 
+### Runtime Enhancements
+
+ProtoSolGenerator includes enhanced runtime support for additional protobuf types and Google well-known types:
+
+#### Float and Double Support
+
+The runtime includes native support for protobuf `float` (32-bit) and `double` (64-bit) types:
+
+- `_decode_float(uint256 p, bytes memory bs)` - Decodes protobuf float to bytes4
+- `_encode_float(bytes4 x, uint256 p, bytes memory bs)` - Encodes bytes4 to protobuf float
+- `_decode_double(uint256 p, bytes memory bs)` - Decodes protobuf double to bytes8
+- `_encode_double(bytes8 x, uint256 p, bytes memory bs)` - Encodes bytes8 to protobuf double
+
+These functions enable proper handling of floating-point validation constraints from buf/validate and other protobuf schemas.
+
+#### Google Well-Known Types
+
+Runtime libraries are provided for common Google protobuf types:
+
+- **GoogleProtobufAny.sol** - Support for `google.protobuf.Any` messages
+- **GoogleProtobufDuration.sol** - Support for `google.protobuf.Duration` messages
+- **GoogleProtobufTimestamp.sol** - Support for `google.protobuf.Timestamp` messages
+- **GoogleProtobufFieldDescriptorProto.sol** - Support for `google.protobuf.FieldDescriptorProto` messages
+
+These libraries are automatically included when generating contracts that use the corresponding Google protobuf types.
+
 ### Data Definition
 
 Users can use the custom type definition to define their data structure. Below is an example:
