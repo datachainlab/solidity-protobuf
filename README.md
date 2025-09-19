@@ -50,6 +50,54 @@ Then install python requirements. Python >= 3.5 is required.
 
 ```pip install -r requirements.txt```
 
+### BSR Plugin Configuration
+
+ProtoSolGenerator can be configured for distribution via the Buf Schema Registry (BSR):
+
+#### Plugin Metadata
+
+The included `buf.plugin.yaml` defines the plugin configuration:
+
+```yaml
+version: v1
+name: buf.build/datachainlab/protoc-gen-solidity
+plugin_version: v1.0.0
+description: "Generate Solidity contracts from protobuf with validation support"
+source_url: "https://github.com/datachainlab/solidity-protobuf"
+deps:
+  - buf.build/protocolbuffers/protobuf
+  - buf.build/bufbuild/protovalidate
+runtime:
+  python:
+    requirements:
+      - protobuf>=4.25.1
+      - wrapt
+spdx_license_id: Apache-2.0
+license_url: "https://github.com/datachainlab/solidity-protobuf/blob/master/LICENSE"
+```
+
+#### Local buf.gen.yaml Usage
+
+For local development with the plugin:
+
+```yaml
+version: v2
+plugins:
+  - local: ["python", "protobuf-solidity/src/protoc/plugin/gen_sol.py"]
+    out: contracts/generated
+    opt: gen_runtime=true
+```
+
+#### Plugin Options
+
+The plugin supports various configuration options:
+
+- `gen_runtime=true`: Generate runtime libraries (ProtoBufRuntime.sol, etc.)
+- `gen_runtime=CustomRuntime.sol`: Generate with custom runtime filename
+- `solc_version=0.8.19`: Target specific Solidity compiler version
+- `for_linking`: Enable library linking mode for larger projects
+- `pb_libname=Custom`: Set custom library name prefix
+
 ### Data Definition
 
 Users can use the custom type definition to define their data structure. Below is an example:
