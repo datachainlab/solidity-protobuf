@@ -10,8 +10,8 @@ pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
 
 
 Num2Type = {
-  1: "double",
-  2: "float",
+  1: "bytes8",  # double -> 8-byte representation
+  2: "bytes4",  # float -> 4-byte representation
   3: "int64",    # not zigzag (proto3 compiler does not seem to use it)
   4: "uint64",
   5: "int32",    # not zigzag (proto3 compiler does not seem to use it)
@@ -586,20 +586,20 @@ def gen_visibility(is_decoder) -> str:
   return "public" #"internal" if is_decoder else ""
 
 def simple_term(field: FieldDescriptor) -> str:
-  return "r.{name}".format(name=field.name)
+  return "r.{name}".format(name=mangle_solidity_field_name(field.name))
 
 def string_term(field: FieldDescriptor) -> str:
-  return "bytes(r.{name}).length".format(name=field.name)
+  return "bytes(r.{name}).length".format(name=mangle_solidity_field_name(field.name))
 
 def bytes_term(field: FieldDescriptor) -> str:
-  return "r.{name}.length".format(name=field.name)
+  return "r.{name}.length".format(name=mangle_solidity_field_name(field.name))
 
 def message_term(field: FieldDescriptor) -> str:
   child = gen_struct_name_from_field(field)
-  return "{child}._empty(r.{name})".format(child=child, name=field.name)
+  return "{child}._empty(r.{name})".format(child=child, name=mangle_solidity_field_name(field.name))
 
 def enum_term(field: FieldDescriptor) -> str:
-  return "uint(r.{name})".format(name=field.name)
+  return "uint(r.{name})".format(name=mangle_solidity_field_name(field.name))
 
 default_values = {
   "bytes": {"cond": "!= 0", "f": bytes_term},
@@ -615,6 +615,8 @@ default_values = {
   "fixed64": {"cond": "!= 0", "f": simple_term},
   "sfixed32": {"cond": "!= 0", "f": simple_term},
   "sfixed64": {"cond": "!= 0", "f": simple_term},
+  "float": {"cond": "!= 0", "f": simple_term},
+  "double": {"cond": "!= 0", "f": simple_term},
   "enum": {"cond": "!= 0", "f": enum_term},
   "message": {"cond": "!= true", "f": message_term}
 }
@@ -626,7 +628,7 @@ class EmptyCheckBlock:
 
   def begin(self):
     if field_is_repeated(self.field):
-      return "if ({term} != 0) {{".format(term="r." + self.field.name + ".length")
+      return "if ({term} != 0) {{".format(term="r." + mangle_solidity_field_name(self.field.name) + ".length")
     elif self.val in default_values:
       dv = default_values[self.val]
       params = dict(
@@ -637,7 +639,7 @@ class EmptyCheckBlock:
     elif is_struct_type(self.field):
       return ""
     else:
-      raise Exception('Unsupported type: {}', self.field.type)
+      raise Exception('Unsupported type: {} in field: {} from message: {}'.format(self.field.type, self.field.name, self.field.containing_type.name))
 
   def end(self):
     if is_struct_type(self.field) and not field_is_repeated(self.field):
@@ -672,3 +674,62 @@ class MessageWrapper(wrapt.ObjectProxy):
   @property
   def fields(self):
     return self._self_fields
+
+# Circular dependency handling for buf/validate types
+CIRCULAR_DEPENDENCY_MAP = {
+  # FieldRules has circular references to MapRules and RepeatedRules
+  "FieldRules": {
+    "map": "MapRules",
+    "repeated": "RepeatedRules"
+  },
+  # MapRules has circular references back to FieldRules
+  "MapRules": {
+    "keys": "FieldRules",
+    "values": "FieldRules"
+  },
+  # RepeatedRules has circular reference back to FieldRules
+  "RepeatedRules": {
+    "items": "FieldRules"
+  }
+}
+
+def is_circular_dependency(msg: Descriptor, field: FieldDescriptor) -> bool:
+  """
+  Detects if a message field creates a circular dependency.
+
+  Args:
+    msg: The containing message descriptor
+    field: The field descriptor to check
+
+  Returns:
+    True if the field creates a circular dependency
+  """
+  msg_name = msg.name
+  field_name = mangle_solidity_field_name(field.name)
+
+
+  # Check if this message has known circular dependencies
+  if msg_name in CIRCULAR_DEPENDENCY_MAP:
+    circular_fields = CIRCULAR_DEPENDENCY_MAP[msg_name]
+    if field_name in circular_fields:
+      # Check if the field type matches the expected circular target
+      if field.message_type:
+        target_type = field.message_type.name
+        expected_target = circular_fields[field_name]
+        return target_type == expected_target
+
+  return False
+
+def should_use_bytes_for_field(msg: Descriptor, field: FieldDescriptor) -> bool:
+  """
+  Determines if a field should use bytes instead of its natural type
+  to break circular dependencies.
+
+  Args:
+    msg: The containing message descriptor
+    field: The field descriptor to check
+
+  Returns:
+    True if the field should use bytes instead of its natural type
+  """
+  return is_circular_dependency(msg, field)

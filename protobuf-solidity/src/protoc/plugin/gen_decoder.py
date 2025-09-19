@@ -1,4 +1,5 @@
 import gen_util as util
+from gen_util import mangle_solidity_field_name
 import gen_decoder_constants as decoder_constants
 from google.protobuf.descriptor import Descriptor, FieldDescriptor
 
@@ -19,32 +20,32 @@ def gen_inner_field_decoder(field: FieldDescriptor, first_pass: bool, index: int
       return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_FIRST_PASS).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
-        field = field.name
+        field = mangle_solidity_field_name(field.name)
       )
     elif first_pass:
       return (decoder_constants.INNER_REPEATED_NON_SCALAR_NUMERIC_FIELD_DECODER_FIRST_PASS).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
-        field = field.name
+        field = mangle_solidity_field_name(field.name)
       )
     elif scalar_numeric:
       return (decoder_constants.INNER_REPEATED_SCALAR_NUMERIC_FIELD_DECODER_SECOND_PASS).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
-        field = field.name
+        field = mangle_solidity_field_name(field.name)
       )
     else:
       return (decoder_constants.INNER_REPEATED_NON_SCALAR_NUMERIC_FIELD_DECODER_SECOND_PASS).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
-        field = field.name
+        field = mangle_solidity_field_name(field.name)
       )
   else:
     if first_pass:
       return (decoder_constants.INNER_FIELD_DECODER).format(
         control = ("else " if index > 0 else ""),
         id = field.number,
-        field = field.name
+        field = mangle_solidity_field_name(field.name)
       )
     else:
       return ""
@@ -63,7 +64,7 @@ def gen_inner_array_allocator(f: FieldDescriptor, is_repeated: bool) -> str:
     return ""
   return (decoder_constants.INNER_ARRAY_ALLOCATOR).format(
     t = util.gen_global_type_from_field(f),
-    field = f.name,
+    field = mangle_solidity_field_name(f.name),
     i = f.number
   )
 
@@ -71,7 +72,7 @@ def gen_inner_map_size(f: FieldDescriptor) -> str:
   if not util.is_map_type(f):
     return ""
   return (decoder_constants.INNER_MAP_SIZE).format(
-    field = f.name,
+    field = mangle_solidity_field_name(f.name),
     i = f.number
   )
 
@@ -117,7 +118,7 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
     assert decode_type[0] != "."
     if not is_repeated:
       return (decoder_constants.ENUM_FIELD_READER).format(
-        field = f.name,
+        field = mangle_solidity_field_name(f.name),
         decoder = util.gen_decoder_name(f),
         decode_type = decode_type,
         t = util.gen_internal_struct_name(msg),
@@ -126,7 +127,7 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
       )
     else:
       unpacked_reader = (decoder_constants.UNPACKED_REPEATED_ENUM_FIELD_READER).format(
-        field = f.name,
+        field = mangle_solidity_field_name(f.name),
         decoder = util.gen_decoder_name(f),
         decode_type = decode_type,
         t = util.gen_internal_struct_name(msg),
@@ -136,7 +137,7 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
         library_name = library_name
       )
       packed_reader = (decoder_constants.PACKED_REPEATED_ENUM_FIELD_READER).format(
-        field = f.name,
+        field = mangle_solidity_field_name(f.name),
         decoder = util.gen_decoder_name(f),
         decode_type = decode_type,
         t = util.gen_internal_struct_name(msg),
@@ -145,14 +146,23 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
       )
       return unpacked_reader + packed_reader
   if not is_repeated:
-    return (decoder_constants.FIELD_READER).format(
-      field = f.name,
-      decoder = util.gen_decoder_name(f),
-      decode_type = util.gen_global_type_decl_from_field(f),
-      t = util.gen_internal_struct_name(msg),
-    )
+    # Handle circular dependencies by using bytes decoder instead of struct decoder
+    if util.should_use_bytes_for_field(msg, f):
+      return (decoder_constants.FIELD_READER).format(
+        field = mangle_solidity_field_name(f.name),
+        decoder = "ProtoBufRuntime._decode_bytes",
+        decode_type = "bytes memory",
+        t = util.gen_internal_struct_name(msg),
+      )
+    else:
+      return (decoder_constants.FIELD_READER).format(
+        field = mangle_solidity_field_name(f.name),
+        decoder = util.gen_decoder_name(f),
+        decode_type = util.gen_global_type_decl_from_field(f),
+        t = util.gen_internal_struct_name(msg),
+      )
   unpacked_reader = (decoder_constants.UNPACKED_REPEATED_FIELD_READER).format(
-    field = f.name,
+    field = mangle_solidity_field_name(f.name),
     decoder = util.gen_decoder_name(f),
     decode_type = util.gen_global_type_decl_from_field(f),
     t = util.gen_internal_struct_name(msg),
@@ -162,21 +172,21 @@ def gen_field_reader(f: FieldDescriptor, msg: Descriptor) -> str:
   packed_reader = '' # this remains empty if wire type is length-delimited
   if util.gen_wire_type(f) == 'Fixed32':
     packed_reader = (decoder_constants.PACKED_REPEATED_FIXED32_FIELD_READER).format(
-      field = f.name,
+      field = mangle_solidity_field_name(f.name),
       decoder = util.gen_decoder_name(f),
       decode_type = util.gen_global_type_decl_from_field(f),
       t = util.gen_internal_struct_name(msg)
     )
   elif util.gen_wire_type(f) == 'Fixed64':
     packed_reader = (decoder_constants.PACKED_REPEATED_FIXED64_FIELD_READER).format(
-      field = f.name,
+      field = mangle_solidity_field_name(f.name),
       decoder = util.gen_decoder_name(f),
       decode_type = util.gen_global_type_decl_from_field(f),
       t = util.gen_internal_struct_name(msg)
     )
   elif util.gen_wire_type(f) == 'Varint':
     packed_reader = (decoder_constants.PACKED_REPEATED_VARINT_FIELD_READER).format(
-      field = f.name,
+      field = mangle_solidity_field_name(f.name),
       decoder = util.gen_decoder_name(f),
       decode_type = util.gen_global_type_decl_from_field(f),
       t = util.gen_internal_struct_name(msg)

@@ -78,6 +78,39 @@ The plugin supports both value-based and boolean flag parameters:
 
 This enables more flexible plugin configuration and better integration with build tools like buf.
 
+### Circular Dependency Resolution
+
+ProtoSolGenerator includes advanced handling for circular dependencies commonly found in validation schemas:
+
+#### Automatic Detection
+
+The generator automatically detects circular references in message structures, particularly in buf/validate types:
+
+- **FieldRules** ↔ **MapRules**: Field rules can reference map validation rules
+- **FieldRules** ↔ **RepeatedRules**: Field rules can reference repeated field validation rules
+- **MapRules** → **FieldRules**: Map rules reference field rules for key/value validation
+
+#### Bytes Field Solution
+
+Circular dependencies are resolved by using `bytes` fields with encode/decode helpers:
+
+```solidity
+struct BufValidateFieldRules {
+    bytes map_field;        // Circular reference: use encode/decode helpers
+    bytes repeated_field;   // Circular reference: use encode/decode helpers
+    // ... other fields
+}
+```
+
+The circular fields are marked with descriptive comments and can be serialized/deserialized using the standard protobuf encoding functions, maintaining full compatibility while avoiding Solidity compilation errors.
+
+#### No Manual Intervention
+
+Circular dependency resolution is automatic and transparent:
+- Detected at generation time based on message and field type analysis
+- Fields are automatically converted to `bytes` representation where needed
+- Original protobuf semantics are preserved through encode/decode operations
+
 ### Data Definition
 
 Users can use the custom type definition to define their data structure. Below is an example:
