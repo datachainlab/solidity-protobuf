@@ -236,7 +236,11 @@ def apply_options(params_string):
     raise ValueError('"gen_runtime" and "use_runtime" cannot be used together')
   if "gen_runtime" in params:
     GEN_RUNTIME = True
-    change_runtime_file_names(params["gen_runtime"])
+    if isinstance(params["gen_runtime"], bool) or params["gen_runtime"] in ["true", "True", "1"]:
+      # Use default filename when just gen_runtime flag is provided
+      pass
+    else:
+      change_runtime_file_names(params["gen_runtime"])
   if "use_runtime" in params:
     GEN_RUNTIME = False
     change_runtime_file_names(params["use_runtime"])

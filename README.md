@@ -50,6 +50,34 @@ Then install python requirements. Python >= 3.5 is required.
 
 ```pip install -r requirements.txt```
 
+### Solidity Compatibility
+
+ProtoSolGenerator includes comprehensive compatibility features for Solidity development:
+
+#### Reserved Keyword Handling
+
+The generator automatically mangles protobuf field names that conflict with Solidity reserved keywords:
+
+- **Automatic detection**: Comprehensive list of Solidity reserved keywords including types (uint256, bytes32, etc.), control flow (if, while, etc.), and language features (contract, library, etc.)
+- **Safe mangling**: Conflicting field names are automatically suffixed with `_field` (e.g., `uint32` → `uint32_field`)
+- **No manual intervention**: Field name conflicts are resolved transparently during code generation
+
+#### Enhanced Parameter Processing
+
+The plugin supports both value-based and boolean flag parameters:
+
+```bash
+# Boolean flags (automatically detected)
+--sol_opt=gen_runtime
+--sol_opt=use_builtin_enum
+
+# Value-based parameters
+--sol_opt=gen_runtime=MyRuntime.sol
+--sol_opt=solc_version=0.8.19
+```
+
+This enables more flexible plugin configuration and better integration with build tools like buf.
+
 ### Data Definition
 
 Users can use the custom type definition to define their data structure. Below is an example:
