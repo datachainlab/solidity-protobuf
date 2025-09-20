@@ -50,7 +50,6 @@ Then install python requirements. Python >= 3.5 is required.
 
 ```pip install -r requirements.txt```
 
-<<<<<<< HEAD
 ### Runtime Enhancements
 
 ProtoSolGenerator includes enhanced runtime support for additional protobuf types and Google well-known types:
@@ -76,7 +75,7 @@ Runtime libraries are provided for common Google protobuf types:
 - **GoogleProtobufFieldDescriptorProto.sol** - Support for `google.protobuf.FieldDescriptorProto` messages
 
 These libraries are automatically included when generating contracts that use the corresponding Google protobuf types.
-=======
+
 ### Solidity Compatibility
 
 ProtoSolGenerator includes comprehensive compatibility features for Solidity development:
@@ -137,7 +136,54 @@ Circular dependency resolution is automatic and transparent:
 - Detected at generation time based on message and field type analysis
 - Fields are automatically converted to `bytes` representation where needed
 - Original protobuf semantics are preserved through encode/decode operations
->>>>>>> feat/circular-dependency-fix
+
+### BSR Plugin Configuration
+
+ProtoSolGenerator can be configured for distribution via the Buf Schema Registry (BSR):
+
+#### Plugin Metadata
+
+The included `buf.plugin.yaml` defines the plugin configuration:
+
+```yaml
+version: v1
+name: buf.build/datachainlab/protoc-gen-solidity
+plugin_version: v1.0.0
+description: "Generate Solidity contracts from protobuf with validation support"
+source_url: "https://github.com/datachainlab/solidity-protobuf"
+deps:
+  - buf.build/protocolbuffers/protobuf
+  - buf.build/bufbuild/protovalidate
+runtime:
+  python:
+    requirements:
+      - protobuf>=4.25.1
+      - wrapt
+spdx_license_id: Apache-2.0
+license_url: "https://github.com/datachainlab/solidity-protobuf/blob/master/LICENSE"
+```
+
+#### Local buf.gen.yaml Usage
+
+For local development with the plugin:
+
+```yaml
+version: v2
+plugins:
+  - local: ["python", "protobuf-solidity/src/protoc/plugin/gen_sol.py"]
+    out: contracts/generated
+    opt: gen_runtime=true
+```
+
+#### Plugin Options
+
+The plugin supports various configuration options:
+
+- `gen_runtime=true`: Generate runtime libraries (ProtoBufRuntime.sol, etc.)
+- `gen_runtime=CustomRuntime.sol`: Generate with custom runtime filename
+- `solc_version=0.8.19`: Target specific Solidity compiler version
+- `for_linking`: Enable library linking mode for larger projects
+- `pb_libname=Custom`: Set custom library name prefix
 
 ### Data Definition
 
