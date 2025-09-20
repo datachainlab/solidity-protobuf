@@ -50,6 +50,7 @@ Then install python requirements. Python >= 3.5 is required.
 
 ```pip install -r requirements.txt```
 
+<<<<<<< HEAD
 ### Runtime Enhancements
 
 ProtoSolGenerator includes enhanced runtime support for additional protobuf types and Google well-known types:
@@ -75,6 +76,68 @@ Runtime libraries are provided for common Google protobuf types:
 - **GoogleProtobufFieldDescriptorProto.sol** - Support for `google.protobuf.FieldDescriptorProto` messages
 
 These libraries are automatically included when generating contracts that use the corresponding Google protobuf types.
+=======
+### Solidity Compatibility
+
+ProtoSolGenerator includes comprehensive compatibility features for Solidity development:
+
+#### Reserved Keyword Handling
+
+The generator automatically mangles protobuf field names that conflict with Solidity reserved keywords:
+
+- **Automatic detection**: Comprehensive list of Solidity reserved keywords including types (uint256, bytes32, etc.), control flow (if, while, etc.), and language features (contract, library, etc.)
+- **Safe mangling**: Conflicting field names are automatically suffixed with `_field` (e.g., `uint32` → `uint32_field`)
+- **No manual intervention**: Field name conflicts are resolved transparently during code generation
+
+#### Enhanced Parameter Processing
+
+The plugin supports both value-based and boolean flag parameters:
+
+```bash
+# Boolean flags (automatically detected)
+--sol_opt=gen_runtime
+--sol_opt=use_builtin_enum
+
+# Value-based parameters
+--sol_opt=gen_runtime=MyRuntime.sol
+--sol_opt=solc_version=0.8.19
+```
+
+This enables more flexible plugin configuration and better integration with build tools like buf.
+
+### Circular Dependency Resolution
+
+ProtoSolGenerator includes advanced handling for circular dependencies commonly found in validation schemas:
+
+#### Automatic Detection
+
+The generator automatically detects circular references in message structures, particularly in buf/validate types:
+
+- **FieldRules** ↔ **MapRules**: Field rules can reference map validation rules
+- **FieldRules** ↔ **RepeatedRules**: Field rules can reference repeated field validation rules
+- **MapRules** → **FieldRules**: Map rules reference field rules for key/value validation
+
+#### Bytes Field Solution
+
+Circular dependencies are resolved by using `bytes` fields with encode/decode helpers:
+
+```solidity
+struct BufValidateFieldRules {
+    bytes map_field;        // Circular reference: use encode/decode helpers
+    bytes repeated_field;   // Circular reference: use encode/decode helpers
+    // ... other fields
+}
+```
+
+The circular fields are marked with descriptive comments and can be serialized/deserialized using the standard protobuf encoding functions, maintaining full compatibility while avoiding Solidity compilation errors.
+
+#### No Manual Intervention
+
+Circular dependency resolution is automatic and transparent:
+- Detected at generation time based on message and field type analysis
+- Fields are automatically converted to `bytes` representation where needed
+- Original protobuf semantics are preserved through encode/decode operations
+>>>>>>> feat/circular-dependency-fix
 
 ### Data Definition
 
