@@ -338,6 +338,38 @@ library ProtoBufRuntime {
   }
 
   /**
+   * @dev Decode ProtoBuf float (32-bit)
+   * @param p The memory offset of `bs`
+   * @param bs The bytes array to be decoded
+   * @return The decoded float as bytes4
+   * @return The length of `bs` used to get decoded (always 4)
+   */
+  function _decode_float(uint256 p, bytes memory bs)
+    internal
+    pure
+    returns (bytes4, uint256)
+  {
+    (uint32 x, uint256 sz) = _decode_fixed32(p, bs);
+    return (bytes4(x), sz);
+  }
+
+  /**
+   * @dev Decode ProtoBuf double (64-bit)
+   * @param p The memory offset of `bs`
+   * @param bs The bytes array to be decoded
+   * @return The decoded double as bytes8
+   * @return The length of `bs` used to get decoded (always 8)
+   */
+  function _decode_double(uint256 p, bytes memory bs)
+    internal
+    pure
+    returns (bytes8, uint256)
+  {
+    (uint64 x, uint256 sz) = _decode_fixed64(p, bs);
+    return (bytes8(uint64(x)), sz);
+  }
+
+  /**
    * @dev Decode ProtoBuf key
    * @param p The memory offset of `bs`
    * @param bs The bytes array to be decoded
@@ -835,6 +867,36 @@ library ProtoBufRuntime {
       twosComplement := x
     }
     return _encode_uintf(twosComplement, p, bs, 8);
+  }
+
+  /**
+   * @dev Encode ProtoBuf float (32-bit)
+   * @param x The float as bytes4 to be encoded
+   * @param p The memory offset of `bs`
+   * @param bs The bytes array to encode to
+   * @return The number of bytes used to encode
+   */
+  function _encode_float(bytes4 x, uint256 p, bytes memory bs)
+    internal
+    pure
+    returns (uint256)
+  {
+    return _encode_fixed32(uint32(x), p, bs);
+  }
+
+  /**
+   * @dev Encode ProtoBuf double (64-bit)
+   * @param x The double as bytes8 to be encoded
+   * @param p The memory offset of `bs`
+   * @param bs The bytes array to encode to
+   * @return The number of bytes used to encode
+   */
+  function _encode_double(bytes8 x, uint256 p, bytes memory bs)
+    internal
+    pure
+    returns (uint256)
+  {
+    return _encode_fixed64(uint64(x), p, bs);
   }
 
   /**

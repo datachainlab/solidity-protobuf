@@ -10,8 +10,8 @@ pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
 
 
 Num2Type = {
-  1: "double",
-  2: "float",
+  1: "bytes8",  # double -> 8-byte representation
+  2: "bytes4",  # float -> 4-byte representation
   3: "int64",    # not zigzag (proto3 compiler does not seem to use it)
   4: "uint64",
   5: "int32",    # not zigzag (proto3 compiler does not seem to use it)
@@ -216,7 +216,10 @@ def parse_urllike_parameter(s):
   if s:
     for e in s.split('&'):
       kv = e.split('=')
-      ret[kv[0]] = kv[1]
+      if len(kv) == 1:
+        ret[kv[0]] = True  # Boolean flag parameters
+      else:
+        ret[kv[0]] = kv[1]
   return ret
 
 def field_is_message(f: FieldDescriptor) -> bool:
@@ -501,7 +504,41 @@ def gen_global_enum_name(file: FileDescriptor) -> str:
 
   FILE_NAME_GLOBAL_ENUMS
   """
-  return file.name.replace(".", "_").upper() + "_" + "GLOBAL_ENUMS"
+  return file.name.replace(".", "_").replace("/", "_").upper() + "_" + "GLOBAL_ENUMS"
+
+# Solidity reserved keywords that need mangling
+SOLIDITY_RESERVED_KEYWORDS = {
+  'address', 'bool', 'string', 'bytes', 'byte', 'int', 'int8', 'int16', 'int24',
+  'int32', 'int40', 'int48', 'int56', 'int64', 'int72', 'int80', 'int88', 'int96',
+  'int104', 'int112', 'int120', 'int128', 'int136', 'int144', 'int152', 'int160',
+  'int168', 'int176', 'int184', 'int192', 'int200', 'int208', 'int216', 'int224',
+  'int232', 'int240', 'int248', 'int256', 'uint', 'uint8', 'uint16', 'uint24',
+  'uint32', 'uint40', 'uint48', 'uint56', 'uint64', 'uint72', 'uint80', 'uint88',
+  'uint96', 'uint104', 'uint112', 'uint120', 'uint128', 'uint136', 'uint144',
+  'uint152', 'uint160', 'uint168', 'uint176', 'uint184', 'uint192', 'uint200',
+  'uint208', 'uint216', 'uint224', 'uint232', 'uint240', 'uint248', 'uint256',
+  'bytes1', 'bytes2', 'bytes3', 'bytes4', 'bytes5', 'bytes6', 'bytes7', 'bytes8',
+  'bytes9', 'bytes10', 'bytes11', 'bytes12', 'bytes13', 'bytes14', 'bytes15',
+  'bytes16', 'bytes17', 'bytes18', 'bytes19', 'bytes20', 'bytes21', 'bytes22',
+  'bytes23', 'bytes24', 'bytes25', 'bytes26', 'bytes27', 'bytes28', 'bytes29',
+  'bytes30', 'bytes31', 'bytes32', 'fixed', 'ufixed', 'abstract', 'after',
+  'alias', 'apply', 'auto', 'case', 'catch', 'copyof', 'default', 'define',
+  'final', 'immutable', 'implements', 'in', 'inline', 'let', 'macro', 'match',
+  'mutable', 'null', 'of', 'override', 'partial', 'promise', 'reference',
+  'relocatable', 'sealed', 'sizeof', 'static', 'supports', 'switch', 'typedef',
+  'typeof', 'var', 'assembly', 'break', 'continue', 'contract', 'do', 'else',
+  'enum', 'event', 'for', 'function', 'if', 'import', 'library', 'mapping',
+  'modifier', 'pragma', 'return', 'struct', 'using', 'while', 'constant',
+  'anonymous', 'indexed', 'internal', 'external', 'private', 'public', 'pure',
+  'view', 'payable', 'storage', 'memory', 'calldata', 'constructor', 'fallback',
+  'receive', 'virtual', 'double', 'float', 'const'
+}
+
+def mangle_solidity_field_name(field_name: str) -> str:
+  """Mangle field names that conflict with Solidity reserved keywords."""
+  if field_name in SOLIDITY_RESERVED_KEYWORDS:
+    return field_name + "_field"
+  return field_name
 
 def change_pb_libname_prefix(new_name: str):
   global PB_LIB_NAME_PREFIX
@@ -549,20 +586,20 @@ def gen_visibility(is_decoder) -> str:
   return "public" #"internal" if is_decoder else ""
 
 def simple_term(field: FieldDescriptor) -> str:
-  return "r.{name}".format(name=field.name)
+  return "r.{name}".format(name=mangle_solidity_field_name(field.name))
 
 def string_term(field: FieldDescriptor) -> str:
-  return "bytes(r.{name}).length".format(name=field.name)
+  return "bytes(r.{name}).length".format(name=mangle_solidity_field_name(field.name))
 
 def bytes_term(field: FieldDescriptor) -> str:
-  return "r.{name}.length".format(name=field.name)
+  return "r.{name}.length".format(name=mangle_solidity_field_name(field.name))
 
 def message_term(field: FieldDescriptor) -> str:
   child = gen_struct_name_from_field(field)
-  return "{child}._empty(r.{name})".format(child=child, name=field.name)
+  return "{child}._empty(r.{name})".format(child=child, name=mangle_solidity_field_name(field.name))
 
 def enum_term(field: FieldDescriptor) -> str:
-  return "uint(r.{name})".format(name=field.name)
+  return "uint(r.{name})".format(name=mangle_solidity_field_name(field.name))
 
 default_values = {
   "bytes": {"cond": "!= 0", "f": bytes_term},
@@ -578,6 +615,8 @@ default_values = {
   "fixed64": {"cond": "!= 0", "f": simple_term},
   "sfixed32": {"cond": "!= 0", "f": simple_term},
   "sfixed64": {"cond": "!= 0", "f": simple_term},
+  "float": {"cond": "!= 0", "f": simple_term},
+  "double": {"cond": "!= 0", "f": simple_term},
   "enum": {"cond": "!= 0", "f": enum_term},
   "message": {"cond": "!= true", "f": message_term}
 }
@@ -589,7 +628,7 @@ class EmptyCheckBlock:
 
   def begin(self):
     if field_is_repeated(self.field):
-      return "if ({term} != 0) {{".format(term="r." + self.field.name + ".length")
+      return "if ({term} != 0) {{".format(term="r." + mangle_solidity_field_name(self.field.name) + ".length")
     elif self.val in default_values:
       dv = default_values[self.val]
       params = dict(
@@ -600,7 +639,7 @@ class EmptyCheckBlock:
     elif is_struct_type(self.field):
       return ""
     else:
-      raise Exception('Unsupported type: {}', self.field.type)
+      raise Exception('Unsupported type: {} in field: {} from message: {}'.format(self.field.type, self.field.name, self.field.containing_type.name))
 
   def end(self):
     if is_struct_type(self.field) and not field_is_repeated(self.field):
@@ -635,3 +674,62 @@ class MessageWrapper(wrapt.ObjectProxy):
   @property
   def fields(self):
     return self._self_fields
+
+# Circular dependency handling for buf/validate types
+CIRCULAR_DEPENDENCY_MAP = {
+  # FieldRules has circular references to MapRules and RepeatedRules
+  "FieldRules": {
+    "map": "MapRules",
+    "repeated": "RepeatedRules"
+  },
+  # MapRules has circular references back to FieldRules
+  "MapRules": {
+    "keys": "FieldRules",
+    "values": "FieldRules"
+  },
+  # RepeatedRules has circular reference back to FieldRules
+  "RepeatedRules": {
+    "items": "FieldRules"
+  }
+}
+
+def is_circular_dependency(msg: Descriptor, field: FieldDescriptor) -> bool:
+  """
+  Detects if a message field creates a circular dependency.
+
+  Args:
+    msg: The containing message descriptor
+    field: The field descriptor to check
+
+  Returns:
+    True if the field creates a circular dependency
+  """
+  msg_name = msg.name
+  field_name = mangle_solidity_field_name(field.name)
+
+
+  # Check if this message has known circular dependencies
+  if msg_name in CIRCULAR_DEPENDENCY_MAP:
+    circular_fields = CIRCULAR_DEPENDENCY_MAP[msg_name]
+    if field_name in circular_fields:
+      # Check if the field type matches the expected circular target
+      if field.message_type:
+        target_type = field.message_type.name
+        expected_target = circular_fields[field_name]
+        return target_type == expected_target
+
+  return False
+
+def should_use_bytes_for_field(msg: Descriptor, field: FieldDescriptor) -> bool:
+  """
+  Determines if a field should use bytes instead of its natural type
+  to break circular dependencies.
+
+  Args:
+    msg: The containing message descriptor
+    field: The field descriptor to check
+
+  Returns:
+    True if the field should use bytes instead of its natural type
+  """
+  return is_circular_dependency(msg, field)

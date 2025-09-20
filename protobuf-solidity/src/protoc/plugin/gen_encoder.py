@@ -1,4 +1,5 @@
 import gen_util as util
+from gen_util import mangle_solidity_field_name
 import gen_encoder_constants as encoder_constants
 from google.protobuf.descriptor import Descriptor, FieldDescriptor
 from typing import List
@@ -19,7 +20,11 @@ def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
   """Generates a code snippet that encodes a field (a part of _encode)"""
   is_repeated = util.field_is_repeated(f)
   is_packed = util.field_is_packed(f)
-  if is_repeated:
+
+  # Handle circular dependencies by using bytes encoder
+  if util.should_use_bytes_for_field(msg, f):
+    template = encoder_constants.INNER_FIELD_ENCODER_NOT_REPEATED
+  elif is_repeated:
     if util.is_map_type(f):
       template = encoder_constants.INNER_FIELD_ENCODER_REPEATED_MAP
     elif f.type == FieldDescriptor.TYPE_ENUM and is_packed:
@@ -44,12 +49,17 @@ def gen_inner_field_encoder(f: FieldDescriptor, msg: Descriptor) -> str:
   if is_repeated and is_packed:
     size = gen_packed_repeated_array_size(f)
   ecblk = util.EmptyCheckBlock(f)
+
+  # Use bytes encoder for circular dependencies
+  encoder_name = "ProtoBufRuntime._encode_bytes" if util.should_use_bytes_for_field(msg, f) else util.gen_encoder_name(f)
+  wire_type = "LengthDelim" if util.should_use_bytes_for_field(msg, f) else util.gen_wire_type(f)
+
   return template.format(
     block_begin=ecblk.begin(),
-    field = f.name,
+    field = mangle_solidity_field_name(f.name),
     key = f.number,
-    wiretype = util.gen_wire_type(f),
-    encoder = util.gen_encoder_name(f),
+    wiretype = wire_type,
+    encoder = encoder_name,
     enum_name = type_name.split(".")[-1],
     library_name = library_name,
     size = size,
@@ -81,7 +91,7 @@ def gen_packed_repeated_array_size(f: FieldDescriptor) -> str:
   assert util.field_is_repeated(f)
   assert util.field_is_packed(f)
   wt = util.gen_wire_type(f)
-  field = f.name
+  field = mangle_solidity_field_name(f.name)
   if wt == "Fixed32":
     return "(4 * r.{field}.length)".format(field = field)
   if wt == "Fixed64":
@@ -108,13 +118,18 @@ def gen_packed_repeated_array_size(f: FieldDescriptor) -> str:
   Determine the estimated size given the field type
 """
 def gen_field_scalar_size(f: FieldDescriptor, msg: Descriptor) -> str:
+  # Handle circular dependencies as bytes
+  if util.should_use_bytes_for_field(msg, f):
+    fname = mangle_solidity_field_name(f.name) + ("[i]" if util.field_is_repeated(f) else "")
+    return ("ProtoBufRuntime._sz_lendelim(r.{field}.length)").format(field = fname)
+
   wt = util.gen_wire_type(f)
   vt = util.field_pb_type(f)
   if util.field_is_repeated(f) and util.field_is_packed(f):
     return "ProtoBufRuntime._sz_lendelim({})".format(
       gen_packed_repeated_array_size(f)
     )
-  fname = f.name + ("[i]" if util.field_is_repeated(f) else "")
+  fname = mangle_solidity_field_name(f.name) + ("[i]" if util.field_is_repeated(f) else "")
   if wt == "Varint":
     if vt == "bool":
       return "1"
@@ -169,7 +184,7 @@ def gen_field_estimator(f: FieldDescriptor, msg: Descriptor) -> str:
   else:
     template = encoder_constants.FIELD_ESTIMATOR_NOT_REPEATED
   return template.format(
-    field = f.name,
+    field = mangle_solidity_field_name(f.name),
     szKey = (1 if f.number < 16 else 2),
     szItem = gen_field_scalar_size(f, msg)
   )

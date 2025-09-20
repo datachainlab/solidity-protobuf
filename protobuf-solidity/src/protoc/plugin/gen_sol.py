@@ -13,16 +13,25 @@ from google.protobuf.descriptor import Descriptor, FieldDescriptor, FileDescript
 from gen_decoder import gen_decoder_section
 from gen_encoder import gen_encoder_section
 import gen_util as util
+from gen_util import mangle_solidity_field_name
 import gen_sol_constants as sol_constants
 import solidity_protobuf_extensions_pb2 as solpbext
 
 
 def gen_fields(msg: Descriptor) -> str:
-  return '\n'.join(map((lambda f: ("    {type} {name};").format(type = util.gen_fieldtype(f), name = f.name)), msg.fields))
+  def format_field(f):
+    field_name = mangle_solidity_field_name(f.name)
+    if util.should_use_bytes_for_field(msg, f):
+      # Use bytes for circular dependencies with a comment
+      return f"    bytes {field_name}; // Circular reference: use encode/decode helpers"
+    else:
+      return f"    {util.gen_fieldtype(f)} {field_name};"
+
+  return '\n'.join(map(format_field, msg.fields))
 
 def gen_map_fields_decl_for_field(f: FieldDescriptor) -> str:
   return (sol_constants.MAP_FIELD_DEFINITION).format(
-    name = f.name,
+    name = mangle_solidity_field_name(f.name),
     key_type = util.gen_global_type_name_from_field(f.message_type.fields[0]),
     container_type = util.gen_global_type_name_from_field(f)
   )
@@ -91,25 +100,30 @@ def gen_map_insert_on_store(f: FieldDescriptor, parent_msg: Descriptor) -> str:
   for nt in parent_msg.nested_types:
     if nt.GetOptions().map_entry:
       if f.message_type and f.message_type is nt:
-        return ('output._size_{name} = input._size_{name};\n').format(name = f.name)
+        return ('output._size_{name} = input._size_{name};\n').format(name = mangle_solidity_field_name(f.name))
   return ''
 
 def gen_store_code_for_field(f: FieldDescriptor, msg: Descriptor) -> str:
   tmpl = ""
-  if util.field_is_message(f) and util.field_is_repeated(f):
+  # Handle circular dependencies as simple field assignment (bytes)
+  if util.should_use_bytes_for_field(msg, f):
+    return (sol_constants.STORE_OTHER).format(
+      field = mangle_solidity_field_name(f.name)
+    )
+  elif util.field_is_message(f) and util.field_is_repeated(f):
     tmpl = sol_constants.STORE_REPEATED
   elif util.field_is_message(f):
     tmpl = sol_constants.STORE_MESSAGE
   else:
     return (sol_constants.STORE_OTHER).format(
-      field = f.name
+      field = mangle_solidity_field_name(f.name)
     )
 
   libname = util.gen_struct_codec_lib_name_from_field(f)
 
   return tmpl.format(
     i = f.number,
-    field = f.name,
+    field = mangle_solidity_field_name(f.name),
     lib = libname,
     map_insert_code = gen_map_insert_on_store(f, msg)
   )
@@ -150,8 +164,8 @@ def gen_map_helper_codes_for_field(f: FieldDescriptor, nested_type: Descriptor) 
     value_storage_type = ""
   return (sol_constants.MAP_HELPER_CODE).format(
     name = util.to_camel_case(f.name),
-    val_name = "self.{0}".format(f.name),
-    map_name = "self._size_{0}".format(f.name),
+    val_name = "self.{0}".format(mangle_solidity_field_name(f.name)),
+    map_name = "self._size_{0}".format(mangle_solidity_field_name(f.name)),
     key_type = key_type,
     value_type = value_type,
     field_type = field_type,
@@ -164,7 +178,7 @@ def gen_array_helper_codes_for_field(f: FieldDescriptor) -> str:
   field_type = util.gen_global_type_name_from_field(f)
   return (sol_constants.ARRAY_HELPER_CODE).format(
     name = util.to_camel_case(f.name),
-    val_name = "self.{0}".format(f.name),
+    val_name = "self.{0}".format(mangle_solidity_field_name(f.name)),
     field_type = field_type,
     field_storage_type = "memory" if util.is_complex_type(field_type) else ""
   )
@@ -225,8 +239,115 @@ def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
     enum_definition = gen_enum_definition(file),
   ))
 
+def gen_contract_interface(service, delegate_codecs: List[str]):
+  """Generate Solidity contract interface from proto service definition.
+
+  Converts proto service:
+    service ContractInterface {
+      rpc registerIdentity(RegisterIdentityRequest) returns (RegisterIdentityResponse);
+    }
+
+  To Solidity interface:
+    interface IContractInterface {
+      function registerIdentity(string memory domain, string memory identifier) external returns (bool success, string memory error, string memory transaction_hash);
+    }
+  """
+  from google.protobuf.descriptor import ServiceDescriptor
+
+  # Generate interface name from service name
+  interface_name = f"I{service.name}"
+
+  # Generate function signatures for each RPC method
+  functions = []
+  for method in service.methods:
+    # Convert method name to camelCase
+    function_name = method.name[0].lower() + method.name[1:] if method.name else method.name
+
+    # Get input and output message types
+    input_msg = method.input_type
+    output_msg = method.output_type
+
+    # Generate function parameters from input message fields
+    params = []
+    for field in input_msg.fields:
+      solidity_type = get_solidity_type_for_field(field)
+      param_name = field.name
+      params.append(f"{solidity_type} {param_name}")
+
+    # Generate return values from output message fields
+    returns = []
+    for field in output_msg.fields:
+      solidity_type = get_solidity_type_for_field(field)
+      return_name = field.name
+      returns.append(f"{solidity_type} {return_name}")
+
+    # Construct function signature
+    param_str = ", ".join(params)
+    return_str = f" returns ({', '.join(returns)})" if returns else ""
+    function_sig = f"    function {function_name}({param_str}) external{return_str};"
+    functions.append(function_sig)
+
+  # Generate the complete interface
+  interface_code = f"""
+// Generated interface for proto service: {service.name}
+interface {interface_name} {{
+{chr(10).join(functions)}
+}}
+"""
+
+  delegate_codecs.append(interface_code)
+
+def get_solidity_type_for_field(field):
+  """Convert protobuf field type to Solidity type."""
+  from google.protobuf.descriptor import FieldDescriptor
+
+  # Handle repeated fields
+  if field.label == FieldDescriptor.LABEL_REPEATED:
+    base_type = get_solidity_base_type(field)
+    return f"{base_type}[] memory"
+
+  # Handle message types (complex types)
+  if field.type == FieldDescriptor.TYPE_MESSAGE:
+    # For complex messages, we need to use the generated struct type
+    message_name = field.message_type.name
+    return f"{message_name} memory"
+
+  # Handle basic types with memory if needed
+  base_type = get_solidity_base_type(field)
+  if base_type in ["string", "bytes"]:
+    return f"{base_type} memory"
+  return base_type
+
+def get_solidity_base_type(field):
+  """Get base Solidity type for a protobuf field."""
+  from google.protobuf.descriptor import FieldDescriptor
+
+  if field.type == FieldDescriptor.TYPE_STRING:
+    return "string"
+  elif field.type == FieldDescriptor.TYPE_BOOL:
+    return "bool"
+  elif field.type == FieldDescriptor.TYPE_UINT32:
+    return "uint32"
+  elif field.type == FieldDescriptor.TYPE_UINT64:
+    return "uint256"  # Use uint256 for uint64 in Solidity
+  elif field.type == FieldDescriptor.TYPE_BYTES:
+    return "bytes"
+  elif field.type == FieldDescriptor.TYPE_MESSAGE:
+    # Generate the full library path for protobuf message types
+    message_name = field.message_type.name
+    # Use the existing utility function to generate the proper library name
+    import gen_util as util
+    lib_name = util.gen_delegate_lib_name(field.message_type)
+    return f"{lib_name}.Data"
+  else:
+    # For other types, use string as fallback
+    return "string"
+
 RUNTIME_FILE_NAME = "ProtoBufRuntime.sol"
 PROTOBUF_ANY_FILE_NAME = "GoogleProtobufAny.sol"
+PROTOBUF_DURATION_FILE_NAME = "GoogleProtobufDuration.sol"
+PROTOBUF_TIMESTAMP_FILE_NAME = "GoogleProtobufTimestamp.sol"
+PROTOBUF_FIELD_DESCRIPTOR_PROTO_FILE_NAME = "GoogleProtobufFieldDescriptorProto.sol"
 GEN_RUNTIME = False
 COMPILE_META_SCHEMA = False
 def apply_options(params_string):
@@ -236,7 +357,11 @@ def apply_options(params_string):
     raise ValueError('"gen_runtime" and "use_runtime" cannot be used together')
   if "gen_runtime" in params:
     GEN_RUNTIME = True
-    change_runtime_file_names(params["gen_runtime"])
+    if isinstance(params["gen_runtime"], bool) or params["gen_runtime"] in ["true", "True", "1"]:
+      # Use default filename when just gen_runtime flag is provided
+      pass
+    else:
+      change_runtime_file_names(params["gen_runtime"])
   if "use_runtime" in params:
     GEN_RUNTIME = False
     change_runtime_file_names(params["use_runtime"])
@@ -277,6 +402,8 @@ def get_location_option(f: FileDescriptor) -> str:
   return opts.location
 
 def extract_npm_package_name_and_directory_path(location: str) -> Tuple[str, str]:
+  if not location:
+    return "", ""
   parts = location.split('/')
   if location[0] == '@':
     return '/'.join(parts[:2]), '/'.join(parts[2:])
@@ -354,6 +481,9 @@ def generate_code(request, response):
       output.append('{0};'.format(pragma))
     output.append('import "{0}";'.format(gen_import_path(RUNTIME_FILE_NAME, proto_file)))
     output.append('import "{0}";'.format(gen_import_path(PROTOBUF_ANY_FILE_NAME, proto_file)))
+    output.append('import "{0}";'.format(gen_import_path(PROTOBUF_DURATION_FILE_NAME, proto_file)))
+    output.append('import "{0}";'.format(gen_import_path(PROTOBUF_TIMESTAMP_FILE_NAME, proto_file)))
+    output.append('import "{0}";'.format(gen_import_path(PROTOBUF_FIELD_DESCRIPTOR_PROTO_FILE_NAME, proto_file)))
     for dep in proto_file.dependencies:
       if dep.package == "solidity":
         continue
@@ -370,6 +500,10 @@ def generate_code(request, response):
       gen_codec(msg, delegate_codecs)
     if len(proto_file.enum_types_by_name):
       gen_global_enum(proto_file, delegate_codecs)
+
+    # generate contract interfaces from services
+    for service in proto_file.services_by_name.values():
+      gen_contract_interface(service, delegate_codecs)
 
     # epilogue
     output = output + delegate_codecs
