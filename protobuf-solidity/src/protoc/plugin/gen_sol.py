@@ -239,6 +239,110 @@ def gen_global_enum(file: FileDescriptor, delegate_codecs: List[str]):
     enum_definition = gen_enum_definition(file),
   ))
 
+def gen_contract_interface(service, delegate_codecs: List[str]):
+  """Generate Solidity contract interface from proto service definition.
+
+  Converts proto service:
+    service ContractInterface {
+      rpc registerIdentity(RegisterIdentityRequest) returns (RegisterIdentityResponse);
+    }
+
+  To Solidity interface:
+    interface IContractInterface {
+      function registerIdentity(string memory domain, string memory identifier) external returns (bool success, string memory error, string memory transaction_hash);
+    }
+  """
+  from google.protobuf.descriptor import ServiceDescriptor
+
+  # Generate interface name from service name
+  interface_name = f"I{service.name}"
+
+  # Generate function signatures for each RPC method
+  functions = []
+  for method in service.methods:
+    # Convert method name to camelCase
+    function_name = method.name[0].lower() + method.name[1:] if method.name else method.name
+
+    # Get input and output message types
+    input_msg = method.input_type
+    output_msg = method.output_type
+
+    # Generate function parameters from input message fields
+    params = []
+    for field in input_msg.fields:
+      solidity_type = get_solidity_type_for_field(field)
+      param_name = field.name
+      params.append(f"{solidity_type} {param_name}")
+
+    # Generate return values from output message fields
+    returns = []
+    for field in output_msg.fields:
+      solidity_type = get_solidity_type_for_field(field)
+      return_name = field.name
+      returns.append(f"{solidity_type} {return_name}")
+
+    # Construct function signature
+    param_str = ", ".join(params)
+    return_str = f" returns ({', '.join(returns)})" if returns else ""
+    function_sig = f"    function {function_name}({param_str}) external{return_str};"
+    functions.append(function_sig)
+
+  # Generate the complete interface
+  interface_code = f"""
+// Generated interface for proto service: {service.name}
+interface {interface_name} {{
+{chr(10).join(functions)}
+}}
+"""
+
+  delegate_codecs.append(interface_code)
+
+def get_solidity_type_for_field(field):
+  """Convert protobuf field type to Solidity type."""
+  from google.protobuf.descriptor import FieldDescriptor
+
+  # Handle repeated fields
+  if field.label == FieldDescriptor.LABEL_REPEATED:
+    base_type = get_solidity_base_type(field)
+    return f"{base_type}[] memory"
+
+  # Handle message types (complex types)
+  if field.type == FieldDescriptor.TYPE_MESSAGE:
+    # For complex messages, we need to use the generated struct type
+    message_name = field.message_type.name
+    return f"{message_name} memory"
+
+  # Handle basic types with memory if needed
+  base_type = get_solidity_base_type(field)
+  if base_type in ["string", "bytes"]:
+    return f"{base_type} memory"
+  return base_type
+
+def get_solidity_base_type(field):
+  """Get base Solidity type for a protobuf field."""
+  from google.protobuf.descriptor import FieldDescriptor
+
+  if field.type == FieldDescriptor.TYPE_STRING:
+    return "string"
+  elif field.type == FieldDescriptor.TYPE_BOOL:
+    return "bool"
+  elif field.type == FieldDescriptor.TYPE_UINT32:
+    return "uint32"
+  elif field.type == FieldDescriptor.TYPE_UINT64:
+    return "uint256"  # Use uint256 for uint64 in Solidity
+  elif field.type == FieldDescriptor.TYPE_BYTES:
+    return "bytes"
+  elif field.type == FieldDescriptor.TYPE_MESSAGE:
+    # Generate the full library path for protobuf message types
+    message_name = field.message_type.name
+    # Use the existing utility function to generate the proper library name
+    import gen_util as util
+    lib_name = util.gen_delegate_lib_name(field.message_type)
+    return f"{lib_name}.Data"
+  else:
+    # For other types, use string as fallback
+    return "string"
+
 RUNTIME_FILE_NAME = "ProtoBufRuntime.sol"
 PROTOBUF_ANY_FILE_NAME = "GoogleProtobufAny.sol"
 PROTOBUF_DURATION_FILE_NAME = "GoogleProtobufDuration.sol"
@@ -396,6 +500,10 @@ def generate_code(request, response):
       gen_codec(msg, delegate_codecs)
     if len(proto_file.enum_types_by_name):
       gen_global_enum(proto_file, delegate_codecs)
+
+    # generate contract interfaces from services
+    for service in proto_file.services_by_name.values():
+      gen_contract_interface(service, delegate_codecs)
 
     # epilogue
     output = output + delegate_codecs
