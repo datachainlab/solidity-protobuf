@@ -277,6 +277,8 @@ def get_location_option(f: FileDescriptor) -> str:
   return opts.location
 
 def extract_npm_package_name_and_directory_path(location: str) -> Tuple[str, str]:
+  if not location:
+    return "", ""
   parts = location.split('/')
   if location[0] == '@':
     return '/'.join(parts[:2]), '/'.join(parts[2:])
